@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bookshelf – Per‑Row PC Control</title>
+  <title>Bookshelf – Mobile & PC Separate Data</title>
   <style>
     /* ---------- RESET ---------- */
     * {
@@ -27,14 +27,14 @@
       justify-content: center;
     }
 
-    /* ---------- THE BOOKSHELF (mobile default) ---------- */
+    /* ---------- THE BOOKSHELF (default = mobile) ---------- */
     .scene {
       position: relative;
       width: 100vw;
       height: 100vh;
       background-image: url('sbackground.jpg');  /* <-- your background */
       background-size: cover;
-      background-position: center;
+      background-position: center bottom;         /* <-- shows bottom of bookcase */
       background-repeat: no-repeat;
       background-color: #2c1a12;
       flex-shrink: 0;
@@ -60,7 +60,7 @@
     @media (min-width: 1024px) {
       .scene {
         width: 100%;
-        max-width: 1300px;       /* <-- edit bookcase max width */
+        max-width: 1300px;       /* <-- edit bookcase max width on PC */
         height: 100vh;
         flex: 1 1 0;
         background-size: contain;
@@ -87,61 +87,10 @@
 
   <script>
     // ================================================================
-    //  🖥️  PER‑ROW PC CONFIGURATION (edit these four blocks)
-    //  Each row corresponds to the books in order (rows 1–4).
+    //  📱  MOBILE BOOK DATA – edit these for phone/tablet
+    //  (this is your current perfect setup, unchanged)
     // ================================================================
-    const PC_ROW_CONFIG = [
-      // Row 1 (first 11 books)
-      {
-        posMultiplierX: 1.0, // spread books wider
-        posMultiplierY: 1.0, // spread books taller
-        scaleMultiplier: 0.9, // make books larger
-        offsetX: 68, // nudge all books right (+) or left (-)
-        offsetY: -2, // nudge all books down (+) or up (-)
-      },
-      // Row 2 (next 11 books)
-      {
-        posMultiplierX: 1.0,
-        posMultiplierY: 1.0,
-        scaleMultiplier: 0.9,
-        offsetX: 68,
-        offsetY: -18.9,
-      },
-      // Row 3 (next 11 books)
-      {
-        posMultiplierX: 1.0,
-        posMultiplierY: 1.0,
-        scaleMultiplier: 0.9,
-        offsetX: 68,
-        offsetY: -35.9,
-      },
-      // Row 4 (last 11 books)
-      {
-        posMultiplierX: 1.0,
-        posMultiplierY: 1.0,
-        scaleMultiplier: 0.9,
-        offsetX: 68,
-        offsetY: -58,
-      },
-    ];
-
-    // ================================================================
-    //  🖼️  PC SIDE DECORATION IMAGES (left & right)
-    // ================================================================
-    const DECOR_PC = {
-      leftImage: "decor-left.png",
-      rightImage: "decor-right.png",
-      scale: 1.0,
-      leftOffsetX: 0,
-      leftOffsetY: 0,
-      rightOffsetX: 0,
-      rightOffsetY: 0,
-    };
-
-    // ================================================================
-    //  📱  YOUR BOOK DATA – exactly as on mobile (unchanged)
-    // ================================================================
-    const booksData = [
+    const booksDataMobile = [
       // Row 1
       { src: "book1.png",  x: 14,  y: 29,  scale: 0.25 },
       { src: "book2.png",  x: 30,  y: 28,  scale: 0.25 },
@@ -193,40 +142,94 @@
     ];
 
     // ================================================================
-    //  🚀  BUILD – auto‑detects PC and applies per‑row config
+    //  🖥️  PC BOOK DATA – edit these for desktop
+    //  Start with a copy of mobile, then adjust to your PC layout.
+    // ================================================================
+    const booksDataPC = [
+      // Row 1 (copy from mobile, then tweak)
+      { src: "book1.png",  x: 14,  y: 29,  scale: 0.25 },
+      { src: "book2.png",  x: 30,  y: 28,  scale: 0.25 },
+      { src: "book3.png",  x: 41,  y: 45.5, scale: 0.22 },
+      { src: "book4.png",  x: 58,  y: 41.5, scale: 0.23 },
+      { src: "book5.png",  x: 78,  y: 58.4, scale: 0.20 },
+      { src: "book6.png",  x: 93,  y: 57,  scale: 0.20 },
+      { src: "book7.png",  x: 108, y: 51,  scale: 0.21 },
+      { src: "book8.png",  x: 123, y: 45,  scale: 0.22 },
+      { src: "book9.png",  x: 133, y: 45,  scale: 0.22 },
+      { src: "book10.png", x: 143, y: 35,  scale: 0.24 },
+      { src: "book11.png", x: 158, y: 28,  scale: 0.25 },
+      // Row 2
+      { src: "book12.png", x: 10,  y: 214, scale: 0.24 },
+      { src: "book13.png", x: 26,  y: 218, scale: 0.23 },
+      { src: "book14.png", x: 43,  y: 224, scale: 0.22 },
+      { src: "book15.png", x: 58,  y: 211, scale: 0.25 },
+      { src: "book16.png", x: 73,  y: 211, scale: 0.25 },
+      { src: "book17.png", x: 88,  y: 211, scale: 0.25 },
+      { src: "book18.png", x: 103, y: 211, scale: 0.25 },
+      { src: "book19.png", x: 118, y: 226, scale: 0.23 },
+      { src: "book20.png", x: 128, y: 226, scale: 0.22 },
+      { src: "book21.png", x: 144, y: 204, scale: 0.25 },
+      { src: "book22.png", x: 158, y: 206, scale: 0.24 },
+      // Row 3
+      { src: "book23.png", x: 10,  y: 370, scale: 0.25 },
+      { src: "book24.png", x: 26,  y: 370, scale: 0.25 },
+      { src: "book25.png", x: 40,  y: 370, scale: 0.25 },
+      { src: "book26.png", x: 55,  y: 370, scale: 0.25 },
+      { src: "book27.png", x: 70,  y: 400, scale: 0.20 },
+      { src: "book28.png", x: 80,  y: 370, scale: 0.25 },
+      { src: "book29.png", x: 95,  y: 400, scale: 0.20 },
+      { src: "book30.png", x: 115, y: 390, scale: 0.25 },
+      { src: "book31.png", x: 130, y: 370, scale: 0.25 },
+      { src: "book32.png", x: 145, y: 400, scale: 0.20 },
+      { src: "book33.png", x: 155, y: 390, scale: 0.25 },
+      // Row 4
+      { src: "book46.png", x: 10,  y: 580, scale: 0.25 },
+      { src: "book48.png", x: 26,  y: 580, scale: 0.25 },
+      { src: "book49.png", x: 40,  y: 580, scale: 0.25 },
+      { src: "book50.png", x: 55,  y: 580, scale: 0.25 },
+      { src: "book51.png", x: 70,  y: 580, scale: 0.25 },
+      { src: "book52.png", x: 80,  y: 580, scale: 0.25 },
+      { src: "book53.png", x: 95,  y: 580, scale: 0.25 },
+      { src: "book55.png", x: 115, y: 580, scale: 0.25 },
+      { src: "book56.png", x: 130, y: 580, scale: 0.25 },
+      { src: "book57.png", x: 145, y: 580, scale: 0.25 },
+      { src: "book58.png", x: 155, y: 580, scale: 0.25 },
+    ];
+
+    // ================================================================
+    //  🖼️  PC SIDE DECORATION IMAGES (left & right)
+    // ================================================================
+    const DECOR_PC = {
+      leftImage: "decor-left.png",
+      rightImage: "decor-right.png",
+      scale: 1.0,
+      leftOffsetX: 0,
+      leftOffsetY: 0,
+      rightOffsetX: 0,
+      rightOffsetY: 0,
+    };
+
+    // ================================================================
+    //  🚀  BUILD – picks the correct dataset based on screen width
     // ================================================================
     const PC_BREAKPOINT = 1024;
     const isPC = window.innerWidth > PC_BREAKPOINT;
 
+    // Choose the data array
+    const booksData = isPC ? booksDataPC : booksDataMobile;
+
     const shelf = document.getElementById('bookshelf');
 
-    // We'll group books in rows of 11 (assuming exactly 11 per row)
-    const ROW_SIZE = 11;
-
-    booksData.forEach((book, index) => {
+    booksData.forEach(book => {
       const img = document.createElement('img');
       img.className = 'book';
       img.src = book.src;
       img.alt = book.src;
 
-      let x = book.x;
-      let y = book.y;
-      let scale = book.scale;
-
-      if (isPC) {
-        // Determine which row this book belongs to (0-based)
-        const rowIndex = Math.floor(index / ROW_SIZE);
-        // Use the row config, fallback to first if out of range
-        const rowConfig = PC_ROW_CONFIG[rowIndex] || PC_ROW_CONFIG[0];
-
-        x = (book.x * rowConfig.posMultiplierX) + rowConfig.offsetX;
-        y = (book.y * rowConfig.posMultiplierY) + rowConfig.offsetY;
-        scale = book.scale * rowConfig.scaleMultiplier;
-      }
-
-      img.style.left = x + 'px';
-      img.style.top = y + 'px';
-      img.style.transform = `scale(${scale})`;
+      // Use x, y, scale directly from the chosen dataset
+      img.style.left = book.x + 'px';
+      img.style.top = book.y + 'px';
+      img.style.transform = `scale(${book.scale})`;
       shelf.appendChild(img);
     });
 
@@ -256,7 +259,7 @@
       }
     }
 
-    console.log(isPC ? '🖥️ PC mode – per‑row adjustments active' : '📱 Phone mode');
+    console.log(isPC ? '🖥️ PC mode – using booksDataPC' : '📱 Phone mode – using booksDataMobile');
   </script>
 </body>
 </html>
