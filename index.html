@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bookshelf – PC Centered (Fixed)</title>
+  <title>Bookshelf – Per‑Row PC Control</title>
   <style>
     /* ---------- RESET ---------- */
     * {
@@ -14,11 +14,11 @@
     html, body {
       width: 100%;
       height: 100%;
-      overflow: hidden;          /* No scroll on any device */
-      background-color: #2c1a12; /* Fallback (visible on PC sides if no decor) */
+      overflow: hidden;
+      background-color: #2c1a12;
     }
 
-    /* ---------- FLEX CONTAINER (centers everything) ---------- */
+    /* ---------- FLEX CONTAINER ---------- */
     #app {
       display: flex;
       width: 100vw;
@@ -27,24 +27,24 @@
       justify-content: center;
     }
 
-    /* ---------- THE BOOKSHELF (default = mobile full screen) ---------- */
+    /* ---------- THE BOOKSHELF (mobile default) ---------- */
     .scene {
       position: relative;
       width: 100vw;
       height: 100vh;
       background-image: url('sbackground.jpg');  /* <-- your background */
-      background-size: cover;                    /* mobile: fills screen */
+      background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      background-color: #2c1a12;                 /* fallback */
+      background-color: #2c1a12;
       flex-shrink: 0;
     }
 
     /* ---------- SIDE DECORATIONS (hidden on mobile) ---------- */
     .decor-container {
-      display: none;             /* hidden on phones */
+      display: none;
       height: 100vh;
-      flex: 1 1 0;              /* takes remaining space */
+      flex: 1 1 0;
       overflow: hidden;
       background-color: #2c1a12;
       align-items: center;
@@ -56,24 +56,22 @@
       flex-shrink: 0;
     }
 
-    /* ---------- 🖥️  PC OVERRIDES (FIXED) ---------- */
+    /* ---------- PC OVERRIDES ---------- */
     @media (min-width: 1024px) {
       .scene {
-        width: 100%;             /* ✅ FIX: gives the container width */
-        max-width: 1300px;       /* <-- EDIT: how wide you want the bookcase on PC */
+        width: 100%;
+        max-width: 1300px;       /* <-- edit bookcase max width */
         height: 100vh;
-        flex: 1 1 0;            /* allows it to grow/shrink within max-width */
-        background-size: contain; /* shows the ENTIRE bookcase, no cropping */
+        flex: 1 1 0;
+        background-size: contain;
         background-position: center;
       }
-
       .decor-container {
-        display: flex;           /* show side decorations on PC */
-        flex: 1 1 0;            /* takes remaining left/right space */
+        display: flex;
+        flex: 1 1 0;
       }
     }
 
-    /* ---------- BOOK STYLES ---------- */
     .book {
       position: absolute;
       transform-origin: top left;
@@ -82,55 +80,75 @@
 </head>
 <body>
   <div id="app">
-    <!-- LEFT DECORATION (PC only) -->
     <div id="decor-left" class="decor-container"></div>
-
-    <!-- THE BOOKSHELF (background + books) -->
     <div class="scene" id="bookshelf"></div>
-
-    <!-- RIGHT DECORATION (PC only) -->
     <div id="decor-right" class="decor-container"></div>
   </div>
 
   <script>
     // ================================================================
-    //  📚  SECTION 1 – PC BOOK POSITION & SCALE
-    //  Only applies when screen width > 1024px.
-    //  Phone uses raw x, y, scale from booksData (ignores these).
+    //  🖥️  PER‑ROW PC CONFIGURATION (edit these four blocks)
+    //  Each row corresponds to the books in order (rows 1–4).
     // ================================================================
-    const BOOKS_PC = {
-      posMultiplierX: 1,   // spread books wider
-      posMultiplierY: 1,   // spread books taller
-      scaleMultiplier: 0.9,  // make books larger
-      offsetX: 68,           // nudge all books right (+) or left (-)
-      offsetY: -02,           // nudge all books down (+) or up (-)
-    };
+    const PC_ROW_CONFIG = [
+      // Row 1 (first 11 books)
+      {
+        posMultiplierX: 1.0,
+        posMultiplierY: 1.0,
+        scaleMultiplier: 0.9,
+        offsetX: 68,
+        offsetY: -2,
+      },
+      // Row 2 (next 11 books)
+      {
+        posMultiplierX: 1.0,
+        posMultiplierY: 1.0,
+        scaleMultiplier: 0.9,
+        offsetX: 68,
+        offsetY: -2,
+      },
+      // Row 3 (next 11 books)
+      {
+        posMultiplierX: 1.0,
+        posMultiplierY: 1.0,
+        scaleMultiplier: 0.9,
+        offsetX: 68,
+        offsetY: -2,
+      },
+      // Row 4 (last 11 books)
+      {
+        posMultiplierX: 1.0,
+        posMultiplierY: 1.0,
+        scaleMultiplier: 0.9,
+        offsetX: 68,
+        offsetY: -2,
+      },
+    ];
 
     // ================================================================
-    //  🖼️  SECTION 2 – PC SIDE DECORATION IMAGES
-    //  These appear only on PC, left and right of the bookcase.
+    //  🖼️  PC SIDE DECORATION IMAGES (left & right)
     // ================================================================
     const DECOR_PC = {
-      leftImage: "decor-left.png",    // <-- set your image file name
-      rightImage: "decor-right.png",  // <-- set your image file name
-      scale: 1.0,                     // zoom of the decorations
-      leftOffsetX: 0,                 // shift left image horizontally
-      leftOffsetY: 0,                 // shift left image vertically
-      rightOffsetX: 0,                // shift right image horizontally
-      rightOffsetY: 0,                // shift right image vertically
+      leftImage: "decor-left.png",
+      rightImage: "decor-right.png",
+      scale: 1.0,
+      leftOffsetX: 0,
+      leftOffsetY: 0,
+      rightOffsetX: 0,
+      rightOffsetY: 0,
     };
 
     // ================================================================
-    //  📱  YOUR BOOK DATA – keep this as your phone-perfect setup
+    //  📱  YOUR BOOK DATA – exactly as on mobile (unchanged)
     // ================================================================
     const booksData = [
       // Row 1
       { src: "book1.png",  x: 14,  y: 29,  scale: 0.25 },
       { src: "book2.png",  x: 30,  y: 28,  scale: 0.25 },
-      { src: "book3.png",  x: 41, y: 45.5,  scale: 0.22 },
-      { src: "book4.png",  x: 58, y: 41.5,  scale: 0.23 },
-      { src: "book5.png",  x: 78, y: 58,  scale: 0.20 },
-      { src: "book6.png",  x: 93, y: 57,  scale: 0.20 },
+      { src: "book3.png",  x: 41,  y: 45.5, scale: 0.22 },
+      { src: "book4.png",  x: 58,  y: 41.5, scale: 0.23 },
+      { src: "book5.png",  x: 78,  y: 58.4, scale: 0.20 },
+      { src: "book6.png",  x: 93,  y: 57,  scale: 0.20 },
       { src: "book7.png",  x: 108, y: 51,  scale: 0.21 },
       { src: "book8.png",  x: 123, y: 45,  scale: 0.22 },
       { src: "book9.png",  x: 133, y: 45,  scale: 0.22 },
@@ -139,10 +157,10 @@
       // Row 2
       { src: "book12.png", x: 10,  y: 214, scale: 0.24 },
       { src: "book13.png", x: 26,  y: 218, scale: 0.23 },
-      { src: "book14.png", x: 43, y: 224, scale: 0.22 },
-      { src: "book15.png", x: 58, y: 211, scale: 0.25 },
-      { src: "book16.png", x: 73, y: 211, scale: 0.25 },
-      { src: "book17.png", x: 88, y: 211, scale: 0.25 },
+      { src: "book14.png", x: 43,  y: 224, scale: 0.22 },
+      { src: "book15.png", x: 58,  y: 211, scale: 0.25 },
+      { src: "book16.png", x: 73,  y: 211, scale: 0.25 },
+      { src: "book17.png", x: 88,  y: 211, scale: 0.25 },
       { src: "book18.png", x: 103, y: 211, scale: 0.25 },
       { src: "book19.png", x: 118, y: 226, scale: 0.23 },
       { src: "book20.png", x: 128, y: 226, scale: 0.22 },
@@ -151,11 +169,11 @@
       // Row 3
       { src: "book23.png", x: 10,  y: 370, scale: 0.25 },
       { src: "book24.png", x: 26,  y: 370, scale: 0.25 },
-      { src: "book25.png", x: 40, y: 370, scale: 0.25 },
-      { src: "book26.png", x: 55, y: 370, scale: 0.25 },
-      { src: "book27.png", x: 70, y: 400, scale: 0.20 },
-      { src: "book28.png", x: 80, y: 370, scale: 0.25 },
-      { src: "book29.png", x: 95, y: 400, scale: 0.20 },
+      { src: "book25.png", x: 40,  y: 370, scale: 0.25 },
+      { src: "book26.png", x: 55,  y: 370, scale: 0.25 },
+      { src: "book27.png", x: 70,  y: 400, scale: 0.20 },
+      { src: "book28.png", x: 80,  y: 370, scale: 0.25 },
+      { src: "book29.png", x: 95,  y: 400, scale: 0.20 },
       { src: "book30.png", x: 115, y: 390, scale: 0.25 },
       { src: "book31.png", x: 130, y: 370, scale: 0.25 },
       { src: "book32.png", x: 145, y: 400, scale: 0.20 },
@@ -163,11 +181,11 @@
       // Row 4
       { src: "book46.png", x: 10,  y: 580, scale: 0.25 },
       { src: "book48.png", x: 26,  y: 580, scale: 0.25 },
-      { src: "book49.png", x: 40, y: 580, scale: 0.25 },
-      { src: "book50.png", x: 55, y: 580, scale: 0.25 },
-      { src: "book51.png", x: 70, y: 580, scale: 0.25 },
-      { src: "book52.png", x: 80, y: 580, scale: 0.25 },
-      { src: "book53.png", x: 95, y: 580, scale: 0.25 },
+      { src: "book49.png", x: 40,  y: 580, scale: 0.25 },
+      { src: "book50.png", x: 55,  y: 580, scale: 0.25 },
+      { src: "book51.png", x: 70,  y: 580, scale: 0.25 },
+      { src: "book52.png", x: 80,  y: 580, scale: 0.25 },
+      { src: "book53.png", x: 95,  y: 580, scale: 0.25 },
       { src: "book55.png", x: 115, y: 580, scale: 0.25 },
       { src: "book56.png", x: 130, y: 580, scale: 0.25 },
       { src: "book57.png", x: 145, y: 580, scale: 0.25 },
@@ -175,15 +193,17 @@
     ];
 
     // ================================================================
-    //  🚀  BUILD – DO NOT EDIT BELOW
+    //  🚀  BUILD – auto‑detects PC and applies per‑row config
     // ================================================================
-
     const PC_BREAKPOINT = 1024;
     const isPC = window.innerWidth > PC_BREAKPOINT;
 
-    // ---- Inject books ----
     const shelf = document.getElementById('bookshelf');
-    booksData.forEach(book => {
+
+    // We'll group books in rows of 11 (assuming exactly 11 per row)
+    const ROW_SIZE = 11;
+
+    booksData.forEach((book, index) => {
       const img = document.createElement('img');
       img.className = 'book';
       img.src = book.src;
@@ -194,9 +214,14 @@
       let scale = book.scale;
 
       if (isPC) {
-        x = (book.x * BOOKS_PC.posMultiplierX) + BOOKS_PC.offsetX;
-        y = (book.y * BOOKS_PC.posMultiplierY) + BOOKS_PC.offsetY;
-        scale = book.scale * BOOKS_PC.scaleMultiplier;
+        // Determine which row this book belongs to (0-based)
+        const rowIndex = Math.floor(index / ROW_SIZE);
+        // Use the row config, fallback to first if out of range
+        const rowConfig = PC_ROW_CONFIG[rowIndex] || PC_ROW_CONFIG[0];
+
+        x = (book.x * rowConfig.posMultiplierX) + rowConfig.offsetX;
+        y = (book.y * rowConfig.posMultiplierY) + rowConfig.offsetY;
+        scale = book.scale * rowConfig.scaleMultiplier;
       }
 
       img.style.left = x + 'px';
@@ -231,7 +256,7 @@
       }
     }
 
-    console.log(isPC ? '🖥️ PC mode – bookcase centered' : '📱 Phone mode');
+    console.log(isPC ? '🖥️ PC mode – per‑row adjustments active' : '📱 Phone mode');
   </script>
 </body>
 </html>
