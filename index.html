@@ -3,46 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bookshelf – PC Fixed</title>
+  <title>Bookshelf – PC with Side Decor</title>
   <style>
+    /* ---------- RESET ---------- */
     * {
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
     }
     html, body {
       width: 100%;
       height: 100%;
-      overflow: hidden;  /* Prevents any scrolling on both phone & PC */
+      overflow: hidden;          /* No scroll on either device */
+      background-color: #1a0f0a; /* Dark wood fill (visible on PC sides) */
     }
 
-    /* ---------- BASE (PHONE / DEFAULT) ---------- */
+    /* ---------- APP CONTAINER ---------- */
+    #app {
+      width: 100vw;
+      height: 100vh;
+      display: block;            /* Phone: normal block layout */
+    }
+
+    /* ---------- BOOKSHELF (PHONE DEFAULT) ---------- */
     .scene {
       position: relative;
       width: 100vw;
-      height: 100vh;            /* Fixed height – no extra space to scroll */
-      background-image: url('sbackground.jpg');  /* <-- EDIT: background file */
-      background-size: cover;   /* Phone: fills screen beautifully */
+      height: 100vh;
+      background-image: url('sbackground.png');  /* <-- EDIT: background file */
+      background-size: cover;                    /* Phone: fills screen */
       background-position: center;
       background-repeat: no-repeat;
-      box-sizing: border-box;
     }
 
-    /* ---------- 🖥️  PC OVERRIDES (auto-applied for wide screens) ---------- */
+    /* ---------- SIDE DECORATIONS (HIDDEN ON PHONE) ---------- */
+    .pc-decor {
+      display: none;             /* Phone: completely hidden */
+    }
+
+    /* ---------- 🖥️  PC OVERRIDES ---------- */
     @media (min-width: 1024px) {
+      #app {
+        display: flex;           /* PC: side-by-side layout */
+        align-items: center;
+        justify-content: center;
+        gap: 0;                  /* No gap between elements */
+      }
+
       .scene {
-        /* 1) Show the ENTIRE bookcase without cropping */
-        background-size: contain;
-        background-position: center;
-
-        /* 2) Keep it a reasonable width (prevents over‑stretching) */
-        max-width: 1300px;      /* <-- EDIT: adjust to your monitor preference */
-        margin: 0 auto;         /* centers it horizontally */
-
-        /* 3) Lock height to viewport – no vertical scroll */
+        width: auto;
         height: 100vh;
+        max-width: 1300px;       /* <-- EDIT: max width of bookcase on PC */
+        flex-shrink: 0;          /* Prevents squashing */
+        background-size: contain; /* Shows ENTIRE bookcase, no cropping */
+        background-position: center;
+      }
+
+      .pc-decor {
+        display: block;          /* PC: show side decorations */
+        height: 100vh;
+        flex: 1 1 auto;          /* Takes up remaining left/right space */
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+
+      /* Individual decor images – edit the URLs below */
+      #decor-left {
+        background-image: url('decor-left.png');   /* <-- EDIT: left filler image */
+      }
+      #decor-right {
+        background-image: url('decor-right.png');  /* <-- EDIT: right filler image */
       }
     }
 
+    /* ---------- BOOK STYLES ---------- */
     .book {
       position: absolute;
       transform-origin: top left;
@@ -50,19 +85,40 @@
   </style>
 </head>
 <body>
-  <div class="scene" id="bookshelf"></div>
+  <!-- APP WRAPPER -->
+  <div id="app">
+    <!-- Left decoration (PC only) -->
+    <div id="decor-left" class="pc-decor"></div>
+
+    <!-- The actual bookshelf -->
+    <div class="scene" id="bookshelf">
+      <!-- Books will be injected here by JavaScript -->
+    </div>
+
+    <!-- Right decoration (PC only) -->
+    <div id="decor-right" class="pc-decor"></div>
+  </div>
 
   <script>
     // ================================================================
-    //  📱  PHONE = 1.0   |   🖥️  PC = values below
-    //  Edit these two numbers to make books bigger / spread out on PC
+    //  📱  PHONE = uses exact x, y, scale from booksData
+    //  🖥️  PC   = uses multipliers + offsets below
     // ================================================================
-    const PC_POS_MULTIPLIER = 1.6;   // Spread books wider (start with 1.6)
-    const PC_SCALE_MULTIPLIER = 1.4; // Make books larger (start with 1.4)
-    const PC_BREAKPOINT = 1024;
-    // ================================================================
+    const PC_CONFIG = {
+      // --- Spread & size ---
+      posMultiplierX: 2.8,   // Increase → books spread wider apart
+      posMultiplierY: 2.2,   // Increase → books spread taller
+      scaleMultiplier: 2.0,  // Increase → books get bigger
 
-    // ---------- YOUR BOOK DATA (phone‑perfect, keep as‑is) ----------
+      // --- Fine-tuning offset (nudge all books) ---
+      offsetX: 40,           // Positive = move right, Negative = move left
+      offsetY: 10,           // Positive = move down, Negative = move up
+
+      // --- Activate PC mode above this screen width ---
+      breakpoint: 1024,
+    };
+
+    // ---------- YOUR BOOK DATA (keep this as your phone‑perfect setup) ----------
     const booksData = [
       // Row 1
       { src: "book1.png",  x: 10,  y: 28,  scale: 0.25 },
@@ -71,11 +127,11 @@
       { src: "book4.png",  x: 50, y: 28,  scale: 0.25 },
       { src: "book5.png",  x: 65, y: 28,  scale: 0.25 },
       { src: "book6.png",  x: 80, y: 28,  scale: 0.25 },
-      { src: "book7.png",  x: 95, y: 28,  scale: 0.25 },
-      { src: "book8.png",  x: 110, y: 28,  scale: 0.25 },
-      { src: "book9.png",  x: 125, y: 28,  scale: 0.25 },
-      { src: "book10.png", x: 140, y: 28,  scale: 0.25 },
-      { src: "book11.png", x: 155, y: 28,  scale: 0.25 },
+      { src: "book7.png",  x: 440, y: 80,  scale: 0.7 },
+      { src: "book8.png",  x: 510, y: 80,  scale: 0.7 },
+      { src: "book9.png",  x: 580, y: 80,  scale: 0.7 },
+      { src: "book10.png", x: 650, y: 80,  scale: 0.7 },
+      { src: "book11.png", x: 720, y: 80,  scale: 0.7 },
       // Row 2
       { src: "book12.png", x: 20,  y: 200, scale: 0.7 },
       { src: "book13.png", x: 90,  y: 200, scale: 0.7 },
@@ -115,25 +171,36 @@
     ];
 
     // ================================================================
-    //  🚀  BUILD – auto‑detects screen width
+    //  🚀  BUILD – DO NOT EDIT BELOW (unless you know what you're doing)
     // ================================================================
-    const isPC = window.innerWidth > PC_BREAKPOINT;
-    const posMult = isPC ? PC_POS_MULTIPLIER : 1.0;
-    const scaleMult = isPC ? PC_SCALE_MULTIPLIER : 1.0;
+    const isPC = window.innerWidth > PC_CONFIG.breakpoint;
 
     const shelf = document.getElementById('bookshelf');
+
     booksData.forEach(book => {
       const img = document.createElement('img');
       img.className = 'book';
       img.src = book.src;
       img.alt = book.src;
-      img.style.left = (book.x * posMult) + 'px';
-      img.style.top = (book.y * posMult) + 'px';
-      img.style.transform = `scale(${book.scale * scaleMult})`;
+
+      let x = book.x;
+      let y = book.y;
+      let scale = book.scale;
+
+      if (isPC) {
+        x = (book.x * PC_CONFIG.posMultiplierX) + PC_CONFIG.offsetX;
+        y = (book.y * PC_CONFIG.posMultiplierY) + PC_CONFIG.offsetY;
+        scale = book.scale * PC_CONFIG.scaleMultiplier;
+      }
+
+      img.style.left = x + 'px';
+      img.style.top = y + 'px';
+      img.style.transform = `scale(${scale})`;
       shelf.appendChild(img);
     });
 
-    console.log(isPC ? '🖥️  PC mode' : '📱  Phone mode');
+    // Log which mode is active (helps with debugging)
+    console.log(isPC ? '🖥️  PC mode (decorations active)' : '📱  Phone mode');
   </script>
 </body>
 </html>
