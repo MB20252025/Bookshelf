@@ -107,8 +107,13 @@
 
   <script>
     // ================================================================
+    //  🖥️  PC X OFFSET – shift all books right on desktop
+    //  Increase this number to move books to the right on PC only
+    // ================================================================
+    const PC_X_OFFSET = 80;  // <-- EDIT THIS: try 80, 100, 120, etc.
+
+    // ================================================================
     //  📱  YOUR ORIGINAL DATA (x, y, scale preserved)
-    //  Each book keeps its exact y position.
     // ================================================================
     const rawBooksMobile = [
       // Row 1
@@ -268,6 +273,10 @@
 
         // Compute packed X positions (left to right, no gaps)
         let currentX = 10; // left padding
+
+        // ✅ Apply PC X offset if on desktop
+        const xOffset = isPC ? PC_X_OFFSET : 0;
+
         books.forEach(book => {
           const size = imageSizes[book.src] || { width: 50, height: 50 };
           const scaledWidth = size.width * book.scale;
@@ -277,9 +286,9 @@
           const item = document.createElement('div');
           item.className = 'book-item';
           item.dataset.src = book.src;
-          // Use the book's original Y (not relative to shelf)
-          item.style.left = currentX + 'px';
-          item.style.top = book.y + 'px';  // ← KEEP ORIGINAL Y
+          // Use the book's original Y, and add the X offset on PC
+          item.style.left = (currentX + xOffset) + 'px';
+          item.style.top = book.y + 'px';
 
           const img = document.createElement('img');
           img.src = book.src;
@@ -301,25 +310,17 @@
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
         dragClass: 'sortable-drag',
-        // We need to handle drag between shelves manually
-        // We'll use the onEnd to update shelf based on Y position
         onEnd: function(evt) {
           const movedSrc = evt.item.dataset.src;
           const book = booksData.find(b => b.src === movedSrc);
           if (!book) return;
 
-          // Determine new shelf based on the drop position's Y
-          const dropY = evt.item.style.top; // we get the Y from the element
-          // But we need the Y of the drop point – we can get the mouse Y
-          // Instead, we'll use the final position of the dragged item
           const rect = evt.item.getBoundingClientRect();
           const containerRect = container.getBoundingClientRect();
           const relativeY = rect.top - containerRect.top + window.scrollY;
-          // Map to shelf
           const newShelf = getShelfIndex(relativeY);
           book.shelf = newShelf;
 
-          // Reassign orders based on DOM order
           const items = container.querySelectorAll('.book-item');
           items.forEach((item, idx) => {
             const src = item.dataset.src;
@@ -327,7 +328,6 @@
             if (b) b.order = idx;
           });
 
-          // Re-render
           renderShelves();
         }
       });
@@ -379,7 +379,7 @@
     // Start
     loadImages(() => {
       renderShelves();
-      console.log(isPC ? '🖥️ PC – Y positions preserved' : '📱 – Y positions preserved');
+      console.log(isPC ? `🖥️ PC – Y preserved, X offset: ${PC_X_OFFSET}px` : '📱 – Y preserved');
     });
   </script>
 </body>
