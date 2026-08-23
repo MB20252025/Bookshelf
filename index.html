@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bookshelf</title>
+  <style>
+    /* ---------- RESET & FULL SCREEN ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ---------- BACKGROUND (EDIT IMAGE PATH) ---------- */
+    .scene {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-image: url('sbackground.png');  /* <-- EDIT: background file */
+      background-size: cover;                    /* covers screen, change to 'contain' if needed */
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    /* ---------- BASE BOOK STYLES ---------- */
+    .book {
+      position: absolute;
+      /* 'transform-origin' can be changed if you prefer centering */
+      transform-origin: top left;
+      /* Images will keep their aspect ratio automatically */
+    }
+
+    /* ---------- BOOK 1 (EDIT POSITION & SCALE) ---------- */
+    #book1 {
+      left: 50px;      /* <-- EDIT: X position (from left) */
+      top: 150px;      /* <-- EDIT: Y position (from top) */
+      transform: scale(0.8);  /* <-- EDIT: scale factor (1.0 = original) */
+    }
+
+    /* ---------- BOOK 2 ---------- */
+    #book2 {
+      left: 200px;
+      top: 100px;
+      transform: scale(1.0);
+    }
+
+    /* ---------- BOOK 3 ---------- */
+    #book3 {
+      left: 400px;
+      top: 200px;
+      transform: scale(1.2);
+    }
+
+    /* ---------- BOOK 4 ---------- */
+    #book4 {
+      left: 600px;
+      top: 50px;
+      transform: scale(0.9);
+    }
+
+    /* (Optional) Add more books by copying the pattern above */
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <!-- Each book: edit the 'src' and the corresponding CSS block above -->
+    <img id="book1" class="book" src="book1.png" alt="Book 1" />   <!-- EDIT: filename -->
+    <img id="book2" class="book" src="book2.png" alt="Book 2" />
+    <img id="book3" class="book" src="book3.png" alt="Book 3" />
+    <img id="book4" class="book" src="book4.png" alt="Book 4" />
+    <!-- Add more <img> tags here, and give each a unique ID -->
+  </div>
+</body>
+</html>
