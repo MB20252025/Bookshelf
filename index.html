@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drag‑and‑Drop Bookshelf – Flush Layout</title>
+  <!-- SortableJS for drag & drop (touch + mouse) -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    /* ---------- RESET ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none; /* prevent text selection while dragging */
+    }
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background-color: #2c1a12;
+    }
+    /* ---------- APP CONTAINER ---------- */
+    #app {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+      align-items: stretch;
+      justify-content: center;
+      background-color: #2c1a12;
+    }
+
+    /* ---------- THE BOOKSHELF (mobile) ---------- */
+    .scene {
+      position: relative;
+      width: 100vw;
+      min-height: 100vh;
+      height: auto;
+      background-image: url('sbackground.jpg');  /* <-- your background */
+      background-size: cover;
+      background-position: center bottom;
+      background-repeat: no-repeat;
+      background-color: #2c1a12;
+      flex-shrink: 0;
+    }
+
+    /* ---------- SIDE DECORATIONS (hidden on mobile) ---------- */
+    .decor-container {
+      display: none;
+      flex: 1 1 0;
+      overflow: hidden;
+      background-color: #2c1a12;
+      align-items: center;
+      justify-content: center;
+    }
+    .decor-container img {
+      height: 100%;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    /* ---------- SHELF ROWS ---------- */
+    .shelf-row {
+      position: absolute;
+      left: 10px;          /* small left padding to avoid edge */
+      right: 10px;
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-end;   /* books sit on the bottom of the shelf */
+      gap: 0;                  /* no gaps – books touch each other */
+      height: 120px;           /* adjust to match your shelf height */
+      pointer-events: none;    /* allow clicks on children */
+    }
+    .shelf-row .book-item {
+      pointer-events: auto;    /* make books draggable */
+      flex-shrink: 0;
+      cursor: grab;
+      height: 100%;            /* fill shelf height */
+      display: flex;
+      align-items: flex-end;
+    }
+    .shelf-row .book-item img {
+      display: block;
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+      pointer-events: none;    /* prevent image from capturing drag */
+    }
+    /* drag styling */
+    .shelf-row .book-item.sortable-chosen {
+      opacity: 0.7;
+      border: 2px solid #ffd700;
+    }
+    .shelf-row .book-item.sortable-ghost {
+      opacity: 0.3;
+    }
+
+    /* ---------- PC OVERRIDES ---------- */
+    @media (min-width: 1024px) {
+      html, body {
+        overflow: hidden;
+        height: 100%;
+      }
+      #app {
+        min-height: 0;
+        height: 100vh;
+        flex-direction: row;
+      }
+      .scene {
+        max-width: 1300px;        /* <-- edit bookcase max width on PC */
+        height: 100vh;
+        min-height: 0;
+        background-size: contain;
+        background-position: center;
+        flex: 1 1 0;
+        width: 100%;
+      }
+      .decor-container {
+        display: flex;
+        flex: 1 1 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="decor-left" class="decor-container"></div>
+    <div class="scene" id="bookshelfContainer">
+      <!-- shelves will be injected here -->
+    </div>
+    <div id="decor-right" class="decor-container"></div>
+  </div>
+
+  <script>
+    // ================================================================
+    //  📐  SHELF Y OFFSETS (top of each row in pixels)
+    //  These come from your original Y values for each row.
+    // ================================================================
+    const SHELF_Y = [28, 212, 370, 550]; // row 0..3 – adjust to match your background
+
+    // ================================================================
+    //  📱  MOBILE BOOK DATA – now with shelf (0‑3) and order (0..10)
+    //  I've converted your original data: each row becomes a shelf,
+    //  and the order is the sequence in the original array.
+    //  The scale is preserved.
+    // ================================================================
+    const booksDataMobile = [
+      // Row 1 (shelf 0)
+      { src: "book1.png",  shelf: 0, order: 0, scale: 0.25 },
+      { src: "book2.png",  shelf: 0, order: 1, scale: 0.25 },
+      { src: "book3.png",  shelf: 0, order: 2, scale: 0.22 },
+      { src: "book4.png",  shelf: 0, order: 3, scale: 0.23 },
+      { src: "book5.png",  shelf: 0, order: 4, scale: 0.20 },
+      { src: "book6.png",  shelf: 0, order: 5, scale: 0.20 },
+      { src: "book7.png",  shelf: 0, order: 6, scale: 0.21 },
+      { src: "book8.png",  shelf: 0, order: 7, scale: 0.22 },
+      { src: "book9.png",  shelf: 0, order: 8, scale: 0.22 },
+      { src: "book10.png", shelf: 0, order: 9, scale: 0.24 },
+      { src: "book11.png", shelf: 0, order: 10, scale: 0.25 },
+      // Row 2 (shelf 1)
+      { src: "book12.png", shelf: 1, order: 0, scale: 0.24 },
+      { src: "book13.png", shelf: 1, order: 1, scale: 0.23 },
+      { src: "book14.png", shelf: 1, order: 2, scale: 0.22 },
+      { src: "book15.png", shelf: 1, order: 3, scale: 0.25 },
+      { src: "book16.png", shelf: 1, order: 4, scale: 0.25 },
+      { src: "book17.png", shelf: 1, order: 5, scale: 0.25 },
+      { src: "book18.png", shelf: 1, order: 6, scale: 0.25 },
+      { src: "book19.png", shelf: 1, order: 7, scale: 0.23 },
+      { src: "book20.png", shelf: 1, order: 8, scale: 0.22 },
+      { src: "book21.png", shelf: 1, order: 9, scale: 0.25 },
+      { src: "book22.png", shelf: 1, order: 10, scale: 0.24 },
+      // Row 3 (shelf 2)
+      { src: "book23.png", shelf: 2, order: 0, scale: 0.25 },
+      { src: "book24.png", shelf: 2, order: 1, scale: 0.25 },
+      { src: "book25.png", shelf: 2, order: 2, scale: 0.25 },
+      { src: "book26.png", shelf: 2, order: 3, scale: 0.25 },
+      { src: "book27.png", shelf: 2, order: 4, scale: 0.20 },
+      { src: "book28.png", shelf: 2, order: 5, scale: 0.25 },
+      { src: "book29.png", shelf: 2, order: 6, scale: 0.20 },
+      { src: "book30.png", shelf: 2, order: 7, scale: 0.25 },
+      { src: "book31.png", shelf: 2, order: 8, scale: 0.25 },
+      { src: "book32.png", shelf: 2, order: 9, scale: 0.20 },
+      { src: "book33.png", shelf: 2, order: 10, scale: 0.25 },
+      // Row 4 (shelf 3)
+      { src: "book46.png", shelf: 3, order: 0, scale: 0.25 },
+      { src: "book48.png", shelf: 3, order: 1, scale: 0.25 },
+      { src: "book49.png", shelf: 3, order: 2, scale: 0.25 },
+      { src: "book50.png", shelf: 3, order: 3, scale: 0.25 },
+      { src: "book51.png", shelf: 3, order: 4, scale: 0.25 },
+      { src: "book52.png", shelf: 3, order: 5, scale: 0.25 },
+      { src: "book53.png", shelf: 3, order: 6, scale: 0.25 },
+      { src: "book55.png", shelf: 3, order: 7, scale: 0.25 },
+      { src: "book56.png", shelf: 3, order: 8, scale: 0.25 },
+      { src: "book57.png", shelf: 3, order: 9, scale: 0.25 },
+      { src: "book58.png", shelf: 3, order: 10, scale: 0.25 },
+    ];
+
+    // ================================================================
+    //  🖥️  PC BOOK DATA – same structure, but with PC‑tuned scales
+    //  (I've copied your PC scales from your previous code)
+    // ================================================================
+    const booksDataPC = [
+      // Row 1 (shelf 0)
+      { src: "book1.png",  shelf: 0, order: 0, scale: 0.22 },
+      { src: "book2.png",  shelf: 0, order: 1, scale: 0.22 },
+      { src: "book3.png",  shelf: 0, order: 2, scale: 0.19 },
+      { src: "book4.png",  shelf: 0, order: 3, scale: 0.20 },
+      { src: "book5.png",  shelf: 0, order: 4, scale: 0.17 },
+      { src: "book6.png",  shelf: 0, order: 5, scale: 0.17 },
+      { src: "book7.png",  shelf: 0, order: 6, scale: 0.18 },
+      { src: "book8.png",  shelf: 0, order: 7, scale: 0.19 },
+      { src: "book9.png",  shelf: 0, order: 8, scale: 0.19 },
+      { src: "book10.png", shelf: 0, order: 9, scale: 0.21 },
+      { src: "book11.png", shelf: 0, order: 10, scale: 0.22 },
+      // Row 2 (shelf 1)
+      { src: "book12.png", shelf: 1, order: 0, scale: 0.21 },
+      { src: "book13.png", shelf: 1, order: 1, scale: 0.21 },
+      { src: "book14.png", shelf: 1, order: 2, scale: 0.22 },
+      { src: "book15.png", shelf: 1, order: 3, scale: 0.22 },
+      { src: "book16.png", shelf: 1, order: 4, scale: 0.22 },
+      { src: "book17.png", shelf: 1, order: 5, scale: 0.22 },
+      { src: "book18.png", shelf: 1, order: 6, scale: 0.22 },
+      { src: "book19.png", shelf: 1, order: 7, scale: 0.20 },
+      { src: "book20.png", shelf: 1, order: 8, scale: 0.20 },
+      { src: "book21.png", shelf: 1, order: 9, scale: 0.22 },
+      { src: "book22.png", shelf: 1, order: 10, scale: 0.21 },
+      // Row 3 (shelf 2)
+      { src: "book23.png", shelf: 2, order: 0, scale: 0.25 },
+      { src: "book24.png", shelf: 2, order: 1, scale: 0.25 },
+      { src: "book25.png", shelf: 2, order: 2, scale: 0.25 },
+      { src: "book26.png", shelf: 2, order: 3, scale: 0.25 },
+      { src: "book27.png", shelf: 2, order: 4, scale: 0.20 },
+      { src: "book28.png", shelf: 2, order: 5, scale: 0.25 },
+      { src: "book29.png", shelf: 2, order: 6, scale: 0.20 },
+      { src: "book30.png", shelf: 2, order: 7, scale: 0.25 },
+      { src: "book31.png", shelf: 2, order: 8, scale: 0.25 },
+      { src: "book32.png", shelf: 2, order: 9, scale: 0.20 },
+      { src: "book33.png", shelf: 2, order: 10, scale: 0.25 },
+      // Row 4 (shelf 3)
+      { src: "book46.png", shelf: 3, order: 0, scale: 0.25 },
+      { src: "book48.png", shelf: 3, order: 1, scale: 0.25 },
+      { src: "book49.png", shelf: 3, order: 2, scale: 0.25 },
+      { src: "book50.png", shelf: 3, order: 3, scale: 0.25 },
+      { src: "book51.png", shelf: 3, order: 4, scale: 0.25 },
+      { src: "book52.png", shelf: 3, order: 5, scale: 0.25 },
+      { src: "book53.png", shelf: 3, order: 6, scale: 0.25 },
+      { src: "book55.png", shelf: 3, order: 7, scale: 0.25 },
+      { src: "book56.png", shelf: 3, order: 8, scale: 0.25 },
+      { src: "book57.png", shelf: 3, order: 9, scale: 0.25 },
+      { src: "book58.png", shelf: 3, order: 10, scale: 0.25 },
+    ];
+
+    // ================================================================
+    //  🖼️  PC SIDE DECORATIONS
+    // ================================================================
+    const DECOR_PC = {
+      leftImage: "decor-left.png",
+      rightImage: "decor-right.png",
+      scale: 1.0,
+      leftOffsetX: 0,
+      leftOffsetY: 0,
+      rightOffsetX: 0,
+      rightOffsetY: 0,
+    };
+
+    // ================================================================
+    //  🚀  BUILD – picks the correct dataset and renders shelves
+    // ================================================================
+    const PC_BREAKPOINT = 1024;
+    const isPC = window.innerWidth > PC_BREAKPOINT;
+    const booksData = isPC ? booksDataPC : booksDataMobile;
+
+    const container = document.getElementById('bookshelfContainer');
+
+    // Group books by shelf
+    function groupByShelf(books) {
+      const groups = {};
+      books.forEach(book => {
+        if (!groups[book.shelf]) groups[book.shelf] = [];
+        groups[book.shelf].push(book);
+      });
+      for (const key in groups) {
+        groups[key].sort((a, b) => a.order - b.order);
+      }
+      return groups;
+    }
+
+    // Render all shelves
+    function renderShelves() {
+      // clear old shelves
+      container.querySelectorAll('.shelf-row').forEach(el => el.remove());
+
+      const grouped = groupByShelf(booksData);
+      const shelfKeys = Object.keys(grouped).sort((a,b) => a - b);
+
+      shelfKeys.forEach(shelfIndex => {
+        const shelfDiv = document.createElement('div');
+        shelfDiv.className = 'shelf-row';
+        shelfDiv.dataset.shelf = shelfIndex;
+        const y = SHELF_Y[shelfIndex] || 0;
+        shelfDiv.style.top = y + 'px';
+        shelfDiv.style.height = '120px'; // adjust to your shelf height
+
+        const books = grouped[shelfIndex];
+        books.forEach((book) => {
+          const item = document.createElement('div');
+          item.className = 'book-item';
+          item.dataset.src = book.src; // for identification
+
+          const img = document.createElement('img');
+          img.src = book.src;
+          img.alt = book.src;
+          // Apply scale to the item (not the img) so the image keeps aspect ratio
+          // We set height:100% on img and then scale the container
+          const scale = book.scale || 1;
+          item.style.transform = `scale(${scale})`;
+          item.style.transformOrigin = 'bottom left';
+          // Optionally adjust width to prevent overflowing – flex will handle it
+
+          item.appendChild(img);
+          shelfDiv.appendChild(item);
+        });
+
+        container.appendChild(shelfDiv);
+      });
+
+      // Initialize Sortable on each shelf-row
+      document.querySelectorAll('.shelf-row').forEach(row => {
+        new Sortable(row, {
+          group: 'books',           // allow dragging between shelves
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          dragClass: 'sortable-drag',
+          onEnd: function(evt) {
+            // Update data model after drop
+            const shelf = parseInt(evt.to.dataset.shelf, 10);
+            const oldShelf = parseInt(evt.from.dataset.shelf, 10);
+            // Get the book that was moved
+            const movedSrc = evt.item.dataset.src;
+            // Find the book in booksData
+            const book = booksData.find(b => b.src === movedSrc);
+            if (!book) return;
+
+            // Update shelf and order
+            book.shelf = shelf;
+            // Rebuild order for both source and target shelves
+            // We'll just re-sort all shelves by their current DOM order
+            // Actually, we can just re-assign order based on new DOM positions
+            const allShelves = document.querySelectorAll('.shelf-row');
+            allShelves.forEach(row => {
+              const shelfIdx = parseInt(row.dataset.shelf, 10);
+              const items = row.querySelectorAll('.book-item');
+              items.forEach((item, idx) => {
+                const src = item.dataset.src;
+                const b = booksData.find(b => b.src === src);
+                if (b) b.order = idx;
+              });
+            });
+            // Optionally, you can log the updated data
+            console.log('Books reordered:', booksData);
+          }
+        });
+      });
+    }
+
+    // ---- Inject side decorations (PC only) ----
+    if (isPC) {
+      const leftContainer = document.getElementById('decor-left');
+      const rightContainer = document.getElementById('decor-right');
+
+      if (DECOR_PC.leftImage) {
+        const leftImg = document.createElement('img');
+        leftImg.src = DECOR_PC.leftImage;
+        leftImg.alt = 'Left decor';
+        leftImg.style.transform = `scale(${DECOR_PC.scale})`;
+        leftImg.style.marginLeft = DECOR_PC.leftOffsetX + 'px';
+        leftImg.style.marginTop = DECOR_PC.leftOffsetY + 'px';
+        leftContainer.appendChild(leftImg);
+      }
+
+      if (DECOR_PC.rightImage) {
+        const rightImg = document.createElement('img');
+        rightImg.src = DECOR_PC.rightImage;
+        rightImg.alt = 'Right decor';
+        rightImg.style.transform = `scale(${DECOR_PC.scale})`;
+        rightImg.style.marginRight = DECOR_PC.rightOffsetX + 'px';
+        rightImg.style.marginTop = DECOR_PC.rightOffsetY + 'px';
+        rightContainer.appendChild(rightImg);
+      }
+    }
+
+    // Initial render
+    renderShelves();
+
+    console.log(isPC ? '🖥️ PC mode – drag‑and‑drop ready' : '📱 Phone mode – drag‑and‑drop ready');
+  </script>
+</body>
+</html>
