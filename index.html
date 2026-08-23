@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drag‑and‑Drop Bookshelf</title>
+  <style>
+    /* ---------- RESET ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none; /* prevent text selection while dragging */
+    }
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background-color: #2c1a12;
+      overflow-y: auto; /* mobile can scroll */
+    }
+
+    /* ---------- APP WRAPPER ---------- */
+    #app {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+      align-items: stretch;
+      justify-content: center;
+      background-color: #2c1a12;
+      flex-direction: column; /* shelves stack vertically */
+    }
+
+    /* ---------- BOOKSHELF BACKGROUND (container for shelves) ---------- */
+    .bookshelf-background {
+      position: relative;
+      width: 100%;
+      flex: 1 0 auto;          /* grow to fill space */
+      background-image: url('sbackground.jpg');  /* <-- your background */
+      background-size: cover;
+      background-position: center bottom;
+      background-repeat: no-repeat;
+      background-color: #2c1a12;
+      min-height: 100vh;
+    }
+
+    /* ---------- SHELF ROWS ---------- */
+    .shelf {
+      position: absolute;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-end;    /* books sit on the shelf line */
+      justify-content: flex-start;
+      padding: 0 10px;          /* small edge padding */
+      gap: 2px;                /* tiny gap between books (adjust if needed) */
+      height: 120px;           /* adjust to fit your books */
+      pointer-events: none;    /* allow clicks on children */
+    }
+    .shelf .book {
+      pointer-events: auto;    /* make books clickable/draggable */
+      flex-shrink: 0;
+      cursor: grab;
+      transition: transform 0.1s ease, border 0.1s;
+      border: 2px solid transparent;
+      border-radius: 2px;
+    }
+    .shelf .book.dragging {
+      cursor: grabbing;
+      border-color: #ffd700;
+      opacity: 0.7;
+      transform: scale(1.02);
+      z-index: 100;
+    }
+    /* highlight insertion point */
+    .shelf .drop-target {
+      border-left: 4px solid #ffd700;
+      margin-left: -2px;       /* compensate for border width */
+    }
+    .shelf .drop-target-right {
+      border-right: 4px solid #ffd700;
+      margin-right: -2px;
+    }
+
+    /* ---------- PC OVERRIDES ---------- */
+    @media (min-width: 1024px) {
+      html, body {
+        overflow: hidden;
+        height: 100%;
+      }
+      #app {
+        min-height: 100vh;
+        height: 100vh;
+        flex-direction: row;   /* side‑by‑side decor + bookshelf */
+      }
+      .bookshelf-background {
+        max-width: 1300px;
+        height: 100vh;
+        flex-shrink: 0;
+        background-size: contain;
+        background-position: center;
+        min-height: 0;
+      }
+      /* side decorations (PC only) */
+      .decor-left, .decor-right {
+        flex: 1 1 0;
+        height: 100vh;
+        background-color: #2c1a12;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+      .decor-left {
+        background-image: url('decor-left.png');
+      }
+      .decor-right {
+        background-image: url('decor-right.png');
+      }
+    }
+
+    /* ---------- BOOK IMAGE STYLES ---------- */
+    .book img {
+      display: block;
+      width: auto;
+      height: 100%;           /* scale to shelf height */
+      max-height: 100%;
+      object-fit: contain;
+      pointer-events: none;   /* prevent image from capturing drag */
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- left decor (PC only) -->
+    <div class="decor-left"></div>
+
+    <!-- the actual bookshelf with background -->
+    <div class="bookshelf-background" id="bookshelfContainer">
+      <!-- shelves will be injected here by JavaScript -->
+    </div>
+
+    <!-- right decor (PC only) -->
+    <div class="decor-right"></div>
+  </div>
+
+  <script>
+    // ================================================================
+    //  📱  MOBILE BOOK DATA – each book now has shelfIndex (0‑3) and order
+    // ================================================================
+    const booksDataMobile = [
+      // Row 1 (shelf 0)
+      { src: "book1.png",  shelf: 0, order: 0, scale: 0.25 },
+      { src: "book2.png",  shelf: 0, order: 1, scale: 0.25 },
+      { src: "book3.png",  shelf: 0, order: 2, scale: 0.22 },
+      { src: "book4.png",  shelf: 0, order: 3, scale: 0.23 },
+      { src: "book5.png",  shelf: 0, order: 4, scale: 0.20 },
+      { src: "book6.png",  shelf: 0, order: 5, scale: 0.20 },
+      { src: "book7.png",  shelf: 0, order: 6, scale: 0.21 },
+      { src: "book8.png",  shelf: 0, order: 7, scale: 0.22 },
+      { src: "book9.png",  shelf: 0, order: 8, scale: 0.22 },
+      { src: "book10.png", shelf: 0, order: 9, scale: 0.24 },
+      { src: "book11.png", shelf: 0, order: 10, scale: 0.25 },
+      // Row 2 (shelf 1)
+      { src: "book12.png", shelf: 1, order: 0, scale: 0.24 },
+      { src: "book13.png", shelf: 1, order: 1, scale: 0.23 },
+      { src: "book14.png", shelf: 1, order: 2, scale: 0.22 },
+      { src: "book15.png", shelf: 1, order: 3, scale: 0.25 },
+      { src: "book16.png", shelf: 1, order: 4, scale: 0.25 },
+      { src: "book17.png", shelf: 1, order: 5, scale: 0.25 },
+      { src: "book18.png", shelf: 1, order: 6, scale: 0.25 },
+      { src: "book19.png", shelf: 1, order: 7, scale: 0.23 },
+      { src: "book20.png", shelf: 1, order: 8, scale: 0.22 },
+      { src: "book21.png", shelf: 1, order: 9, scale: 0.25 },
+      { src: "book22.png", shelf: 1, order: 10, scale: 0.24 },
+      // Row 3 (shelf 2)
+      { src: "book23.png", shelf: 2, order: 0, scale: 0.25 },
+      { src: "book24.png", shelf: 2, order: 1, scale: 0.25 },
+      { src: "book25.png", shelf: 2, order: 2, scale: 0.25 },
+      { src: "book26.png", shelf: 2, order: 3, scale: 0.25 },
+      { src: "book27.png", shelf: 2, order: 4, scale: 0.20 },
+      { src: "book28.png", shelf: 2, order: 5, scale: 0.25 },
+      { src: "book29.png", shelf: 2, order: 6, scale: 0.20 },
+      { src: "book30.png", shelf: 2, order: 7, scale: 0.25 },
+      { src: "book31.png", shelf: 2, order: 8, scale: 0.25 },
+      { src: "book32.png", shelf: 2, order: 9, scale: 0.20 },
+      { src: "book33.png", shelf: 2, order: 10, scale: 0.25 },
+      // Row 4 (shelf 3)
+      { src: "book46.png", shelf: 3, order: 0, scale: 0.25 },
+      { src: "book48.png", shelf: 3, order: 1, scale: 0.25 },
+      { src: "book49.png", shelf: 3, order: 2, scale: 0.25 },
+      { src: "book50.png", shelf: 3, order: 3, scale: 0.25 },
+      { src: "book51.png", shelf: 3, order: 4, scale: 0.25 },
+      { src: "book52.png", shelf: 3, order: 5, scale: 0.25 },
+      { src: "book53.png", shelf: 3, order: 6, scale: 0.25 },
+      { src: "book55.png", shelf: 3, order: 7, scale: 0.25 },
+      { src: "book56.png", shelf: 3, order: 8, scale: 0.25 },
+      { src: "book57.png", shelf: 3, order: 9, scale: 0.25 },
+      { src: "book58.png", shelf: 3, order: 10, scale: 0.25 },
+    ];
+
+    // ================================================================
+    //  🖥️  PC BOOK DATA – copy from mobile, then adjust scales/positions
+    //  (Note: we no longer need x,y – only shelf and order matter)
+    // ================================================================
+    const booksDataPC = booksDataMobile.map(book => ({ ...book })); // start identical
+
+    // ================================================================
+    //  📐  SHELF Y POSITIONS (relative to the background image)
+    //  These are the top offsets (in px) for each shelf row.
+    //  You can adjust these to align with the shelves in your image.
+    // ================================================================
+    const SHELF_Y = [80, 210, 370, 580]; // row 1..4 – tweak to match your background
+
+    // ================================================================
+    //  🚀  BUILD THE SHELVES
+    // ================================================================
+    const PC_BREAKPOINT = 1024;
+    const isPC = window.innerWidth > PC_BREAKPOINT;
+    const booksData = isPC ? booksDataPC : booksDataMobile;
+
+    // Group books by shelf index
+    function groupByShelf(books) {
+      const groups = {};
+      books.forEach(book => {
+        if (!groups[book.shelf]) groups[book.shelf] = [];
+        groups[book.shelf].push(book);
+      });
+      // sort each shelf by order
+      for (const key in groups) {
+        groups[key].sort((a, b) => a.order - b.order);
+      }
+      return groups;
+    }
+
+    // Re‑render the shelves
+    function renderShelves() {
+      const container = document.getElementById('bookshelfContainer');
+      // clear old shelves (keep container)
+      container.querySelectorAll('.shelf').forEach(el => el.remove());
+
+      const grouped = groupByShelf(booksData);
+      const shelfKeys = Object.keys(grouped).sort((a,b) => a - b);
+
+      shelfKeys.forEach(shelfIndex => {
+        const shelfDiv = document.createElement('div');
+        shelfDiv.className = 'shelf';
+        shelfDiv.dataset.shelf = shelfIndex;
+        // Position the shelf absolutely using SHELF_Y
+        const y = SHELF_Y[shelfIndex] || 0;
+        shelfDiv.style.top = y + 'px';
+        shelfDiv.style.height = '120px'; // adjust to match your shelf height
+
+        const books = grouped[shelfIndex];
+        books.forEach((book, idx) => {
+          const bookDiv = document.createElement('div');
+          bookDiv.className = 'book';
+          bookDiv.draggable = true;
+          bookDiv.dataset.shelf = shelfIndex;
+          bookDiv.dataset.index = idx;
+          bookDiv.dataset.bookId = book.src; // unique identifier
+
+          const img = document.createElement('img');
+          img.src = book.src;
+          img.alt = book.src;
+          // scale the image: we set height: 100% on img, but scale via CSS transform
+          // We'll apply scale to the book container
+          const scale = book.scale || 1;
+          bookDiv.style.transform = `scale(${scale})`;
+          bookDiv.style.transformOrigin = 'bottom left';
+
+          bookDiv.appendChild(img);
+          shelfDiv.appendChild(bookDiv);
+        });
+
+        container.appendChild(shelfDiv);
+      });
+
+      // re‑attach drag event listeners
+      attachDragListeners();
+    }
+
+    // ---------- DRAG & DROP LOGIC ----------
+    let draggedBook = null;
+
+    function attachDragListeners() {
+      const books = document.querySelectorAll('.book');
+      books.forEach(book => {
+        // remove any old listeners (by replacing with new ones)
+        book.removeEventListener('dragstart', dragStart);
+        book.removeEventListener('dragend', dragEnd);
+        book.addEventListener('dragstart', dragStart);
+        book.addEventListener('dragend', dragEnd);
+        // Also listen for dragover/drop on the shelf (for insertion)
+        const shelf = book.parentElement;
+        shelf.removeEventListener('dragover', dragOver);
+        shelf.removeEventListener('dragenter', dragEnter);
+        shelf.removeEventListener('dragleave', dragLeave);
+        shelf.removeEventListener('drop', drop);
+        shelf.addEventListener('dragover', dragOver);
+        shelf.addEventListener('dragenter', dragEnter);
+        shelf.addEventListener('dragleave', dragLeave);
+        shelf.addEventListener('drop', drop);
+      });
+    }
+
+    function dragStart(e) {
+      draggedBook = this;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.dataset.bookId);
+    }
+
+    function dragEnd(e) {
+      this.classList.remove('dragging');
+      // clear all drop highlights
+      document.querySelectorAll('.drop-target, .drop-target-right').forEach(el => {
+        el.classList.remove('drop-target', 'drop-target-right');
+      });
+      draggedBook = null;
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const shelf = this;
+      // find which book we are over (or at the end)
+      const books = shelf.querySelectorAll('.book:not(.dragging)');
+      let targetIndex = books.length; // default: after all
+
+      // get mouse X relative to shelf
+      const rect = shelf.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+
+      for (let i = 0; i < books.length; i++) {
+        const b = books[i];
+        const bRect = b.getBoundingClientRect();
+        const bCenter = bRect.left + bRect.width / 2 - rect.left;
+        if (mouseX < bCenter) {
+          targetIndex = i;
+          break;
+        }
+      }
+
+      // highlight the insertion point
+      shelf.querySelectorAll('.drop-target, .drop-target-right').forEach(el => {
+        el.classList.remove('drop-target', 'drop-target-right');
+      });
+      if (targetIndex < books.length) {
+        books[targetIndex].classList.add('drop-target');
+      } else {
+        // at the end: highlight the last book's right side
+        if (books.length > 0) {
+          books[books.length - 1].classList.add('drop-target-right');
+        } else {
+          // empty shelf – highlight the shelf itself? we'll just add a class to shelf
+          shelf.classList.add('drop-target');
+        }
+      }
+
+      // store the target shelf and index for drop
+      shelf.dataset.dropIndex = targetIndex;
+    }
+
+    function dragEnter(e) {
+      e.preventDefault();
+      // no-op
+    }
+
+    function dragLeave(e) {
+      // remove highlights if we leave the shelf
+      const shelf = this;
+      setTimeout(() => {
+        if (!shelf.contains(e.relatedTarget)) {
+          shelf.querySelectorAll('.drop-target, .drop-target-right').forEach(el => {
+            el.classList.remove('drop-target', 'drop-target-right');
+          });
+        }
+      }, 10);
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      const shelf = this;
+      const targetIndex = parseInt(shelf.dataset.dropIndex, 10);
+      if (isNaN(targetIndex)) return;
+
+      const draggedId = e.dataTransfer.getData('text/plain');
+      if (!draggedId) return;
+
+      // find dragged book element
+      const draggedEl = document.querySelector(`.book[data-book-id="${draggedId}"]`);
+      if (!draggedEl || draggedEl === draggedBook) return;
+
+      const sourceShelf = parseInt(draggedEl.dataset.shelf, 10);
+      const targetShelf = parseInt(shelf.dataset.shelf, 10);
+      const draggedBookData = booksData.find(b => b.src === draggedId);
+
+      if (!draggedBookData) return;
+
+      // remove from source shelf data
+      const sourceBooks = booksData.filter(b => b.shelf === sourceShelf);
+      const draggedIdx = sourceBooks.findIndex(b => b.src === draggedId);
+      if (draggedIdx === -1) return;
+
+      // remove from source array
+      sourceBooks.splice(draggedIdx, 1);
+      // update orders for source shelf
+      sourceBooks.forEach((b, i) => b.order = i);
+
+      // insert into target shelf at targetIndex
+      const targetBooks = booksData.filter(b => b.shelf === targetShelf);
+      // if moving to same shelf, we need to adjust the index if we moved from before
+      let insertIndex = targetIndex;
+      if (sourceShelf === targetShelf) {
+        // the dragged book is already removed, so targetBooks reflects current state
+        // but we need to insert at the correct position
+        // if we had removed from before the target, the targetIndex might be off
+        // because the array is now shorter. But we already removed, so targetBooks is correct.
+        // Just insert at targetIndex (clamped)
+        if (insertIndex > targetBooks.length) insertIndex = targetBooks.length;
+      } else {
+        // different shelf: insert at targetIndex
+        if (insertIndex > targetBooks.length) insertIndex = targetBooks.length;
+      }
+
+      // update the book's shelf and order
+      draggedBookData.shelf = targetShelf;
+      // insert into targetBooks array
+      targetBooks.splice(insertIndex, 0, draggedBookData);
+      // update orders
+      targetBooks.forEach((b, i) => b.order = i);
+
+      // also re-order source shelf orders (already done)
+      // Now re‑render everything
+      renderShelves();
+    }
+
+    // ---------- INITIAL RENDER ----------
+    renderShelves();
+
+    // ---------- TOUCH SUPPORT (for mobile) ----------
+    // We'll use simple polyfill: convert touch events to drag events
+    // For brevity, we'll just note that touch is not fully implemented here,
+    // but you can use a library like SortableJS for production.
+    // For now, we'll add a note in the comments.
+    console.log('Drag‑and‑drop ready! (Touch support can be added with a library)');
+  </script>
+</body>
+</html>
