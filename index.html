@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bookshelf – Mobile & PC Separate Data</title>
+  <title>Bookshelf – Mobile Scroll, PC Fixed</title>
   <style>
     /* ---------- RESET ---------- */
     * {
@@ -13,28 +13,29 @@
     }
     html, body {
       width: 100%;
-      height: 100%;
-      overflow: hidden;
+      min-height: 100%;           /* allow content to stretch */
       background-color: #2c1a12;
     }
 
-    /* ---------- FLEX CONTAINER ---------- */
+    /* ---------- APP CONTAINER ---------- */
     #app {
       display: flex;
       width: 100vw;
-      height: 100vh;
+      min-height: 100vh;          /* mobile: at least full height, can grow */
       align-items: stretch;
       justify-content: center;
+      background-color: #2c1a12;
     }
 
     /* ---------- THE BOOKSHELF (default = mobile) ---------- */
     .scene {
       position: relative;
       width: 100vw;
-      height: 100vh;
+      min-height: 100vh;          /* mobile: can stretch taller */
+      height: auto;               /* allow content to determine height */
       background-image: url('sbackground.jpg');  /* <-- your background */
       background-size: cover;
-      background-position: center bottom;         /* <-- shows bottom of bookcase */
+      background-position: center bottom;   /* show bottom */
       background-repeat: no-repeat;
       background-color: #2c1a12;
       flex-shrink: 0;
@@ -43,7 +44,6 @@
     /* ---------- SIDE DECORATIONS (hidden on mobile) ---------- */
     .decor-container {
       display: none;
-      height: 100vh;
       flex: 1 1 0;
       overflow: hidden;
       background-color: #2c1a12;
@@ -56,15 +56,25 @@
       flex-shrink: 0;
     }
 
-    /* ---------- PC OVERRIDES ---------- */
+    /* ---------- 🖥️  PC OVERRIDES (no scroll, fixed height) ---------- */
     @media (min-width: 1024px) {
+      html, body {
+        overflow: hidden;         /* PC: no scroll */
+        height: 100%;
+      }
+      #app {
+        height: 100vh;            /* PC: fixed viewport height */
+        min-height: 0;
+        width: 100vw;
+      }
       .scene {
         width: 100%;
-        max-width: 1300px;       /* <-- edit bookcase max width on PC */
-        height: 100vh;
-        flex: 1 1 0;
+        max-width: 1300px;        /* <-- edit bookcase max width on PC */
+        height: 100vh;            /* fixed height */
+        min-height: 0;
         background-size: contain;
         background-position: center;
+        flex: 1 1 0;
       }
       .decor-container {
         display: flex;
@@ -72,6 +82,7 @@
       }
     }
 
+    /* ---------- BOOK STYLES ---------- */
     .book {
       position: absolute;
       transform-origin: top left;
@@ -88,7 +99,6 @@
   <script>
     // ================================================================
     //  📱  MOBILE BOOK DATA – edit these for phone/tablet
-    //  (this is your current perfect setup, unchanged)
     // ================================================================
     const booksDataMobile = [
       // Row 1
@@ -143,10 +153,9 @@
 
     // ================================================================
     //  🖥️  PC BOOK DATA – edit these for desktop
-    //  Start with a copy of mobile, then adjust to your PC layout.
     // ================================================================
     const booksDataPC = [
-      // Row 1 (copy from mobile, then tweak)
+      // Row 1 (copy from mobile, then tweak to your PC layout)
       { src: "book1.png",  x: 14,  y: 29,  scale: 0.25 },
       { src: "book2.png",  x: 30,  y: 28,  scale: 0.25 },
       { src: "book3.png",  x: 41,  y: 45.5, scale: 0.22 },
@@ -210,12 +219,10 @@
     };
 
     // ================================================================
-    //  🚀  BUILD – picks the correct dataset based on screen width
+    //  🚀  BUILD – picks the correct dataset
     // ================================================================
     const PC_BREAKPOINT = 1024;
     const isPC = window.innerWidth > PC_BREAKPOINT;
-
-    // Choose the data array
     const booksData = isPC ? booksDataPC : booksDataMobile;
 
     const shelf = document.getElementById('bookshelf');
@@ -226,7 +233,6 @@
       img.src = book.src;
       img.alt = book.src;
 
-      // Use x, y, scale directly from the chosen dataset
       img.style.left = book.x + 'px';
       img.style.top = book.y + 'px';
       img.style.transform = `scale(${book.scale})`;
@@ -259,7 +265,7 @@
       }
     }
 
-    console.log(isPC ? '🖥️ PC mode – using booksDataPC' : '📱 Phone mode – using booksDataMobile');
+    console.log(isPC ? '🖥️ PC mode – using booksDataPC' : '📱 Phone mode – scrollable');
   </script>
 </body>
 </html>
