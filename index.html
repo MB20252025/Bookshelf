@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Drag‑and‑Drop – Stable Sizes</title>
+  <title>Bookshelf – Absolute Y, Packed X</title>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
-    /* ---------- RESET ---------- */
     * {
       margin: 0;
       padding: 0;
@@ -31,7 +30,7 @@
       width: 100vw;
       min-height: 100vh;
       height: auto;
-      background-image: url('sbackground.jpg');  /* <-- your background */
+      background-image: url('sbackground.jpg');
       background-size: cover;
       background-position: center bottom;
       background-repeat: no-repeat;
@@ -52,39 +51,23 @@
       flex-shrink: 0;
     }
 
-    /* ---------- SHELF ROWS ---------- */
-    .shelf-row {
+    /* ---------- BOOKS (absolute positioned) ---------- */
+    .book-item {
       position: absolute;
-      left: 10px;
-      right: 10px;
-      display: flex;
-      flex-wrap: nowrap;
-      align-items: flex-end;    /* books sit on the bottom */
-      gap: 0;                  /* no gaps */
-      height: 120px;           /* adjust to your shelf height */
-      pointer-events: none;
-    }
-    .shelf-row .book-item {
       pointer-events: auto;
-      flex-shrink: 0;
       cursor: grab;
-      display: flex;
-      align-items: flex-end;
-      height: 100%;            /* fill shelf height */
+      transform-origin: top left;
     }
-    .shelf-row .book-item img {
+    .book-item img {
       display: block;
-      width: auto;
-      /* height will be set dynamically via JavaScript */
-      object-fit: contain;
       pointer-events: none;
     }
-    /* drag styling */
-    .shelf-row .book-item.sortable-chosen {
+    .book-item.sortable-chosen {
       opacity: 0.7;
-      border: 2px solid #ffd700;
+      outline: 2px solid #ffd700;
+      z-index: 100;
     }
-    .shelf-row .book-item.sortable-ghost {
+    .book-item.sortable-ghost {
       opacity: 0.3;
     }
 
@@ -124,116 +107,106 @@
 
   <script>
     // ================================================================
-    //  📐  SHELF Y OFFSETS (top of each row)
+    //  📱  YOUR ORIGINAL DATA (x, y, scale preserved)
+    //  Each book keeps its exact y position.
     // ================================================================
-    const SHELF_Y = [28, 212, 370, 550]; // adjust to your background
-
-    // ================================================================
-    //  📱  MOBILE BOOK DATA (shelf, order, scale)
-    // ================================================================
-    const booksDataMobile = [
+    const rawBooksMobile = [
       // Row 1
-      { src: "book1.png",  shelf: 0, order: 0, scale: 0.25 },
-      { src: "book2.png",  shelf: 0, order: 1, scale: 0.25 },
-      { src: "book3.png",  shelf: 0, order: 2, scale: 0.22 },
-      { src: "book4.png",  shelf: 0, order: 3, scale: 0.23 },
-      { src: "book5.png",  shelf: 0, order: 4, scale: 0.20 },
-      { src: "book6.png",  shelf: 0, order: 5, scale: 0.20 },
-      { src: "book7.png",  shelf: 0, order: 6, scale: 0.21 },
-      { src: "book8.png",  shelf: 0, order: 7, scale: 0.22 },
-      { src: "book9.png",  shelf: 0, order: 8, scale: 0.22 },
-      { src: "book10.png", shelf: 0, order: 9, scale: 0.24 },
-      { src: "book11.png", shelf: 0, order: 10, scale: 0.25 },
+      { src: "book1.png",  x: 14,  y: 28.7,  scale: 0.25 },
+      { src: "book2.png",  x: 30,  y: 28,    scale: 0.25 },
+      { src: "book3.png",  x: 41,  y: 45.5,  scale: 0.22 },
+      { src: "book4.png",  x: 58,  y: 41.5,  scale: 0.23 },
+      { src: "book5.png",  x: 78,  y: 58.4,  scale: 0.20 },
+      { src: "book6.png",  x: 93,  y: 57,    scale: 0.20 },
+      { src: "book7.png",  x: 108, y: 51,    scale: 0.21 },
+      { src: "book8.png",  x: 123, y: 45,    scale: 0.22 },
+      { src: "book9.png",  x: 133, y: 45,    scale: 0.22 },
+      { src: "book10.png", x: 143, y: 35,    scale: 0.24 },
+      { src: "book11.png", x: 158, y: 28,    scale: 0.25 },
       // Row 2
-      { src: "book12.png", shelf: 1, order: 0, scale: 0.24 },
-      { src: "book13.png", shelf: 1, order: 1, scale: 0.23 },
-      { src: "book14.png", shelf: 1, order: 2, scale: 0.22 },
-      { src: "book15.png", shelf: 1, order: 3, scale: 0.25 },
-      { src: "book16.png", shelf: 1, order: 4, scale: 0.25 },
-      { src: "book17.png", shelf: 1, order: 5, scale: 0.25 },
-      { src: "book18.png", shelf: 1, order: 6, scale: 0.25 },
-      { src: "book19.png", shelf: 1, order: 7, scale: 0.23 },
-      { src: "book20.png", shelf: 1, order: 8, scale: 0.22 },
-      { src: "book21.png", shelf: 1, order: 9, scale: 0.25 },
-      { src: "book22.png", shelf: 1, order: 10, scale: 0.24 },
+      { src: "book12.png", x: 14,  y: 219,   scale: 0.24 },
+      { src: "book13.png", x: 26,  y: 223,   scale: 0.23 },
+      { src: "book14.png", x: 43,  y: 229,   scale: 0.22 },
+      { src: "book15.png", x: 58,  y: 212,   scale: 0.25 },
+      { src: "book16.png", x: 73,  y: 212,   scale: 0.25 },
+      { src: "book17.png", x: 88,  y: 212,   scale: 0.25 },
+      { src: "book18.png", x: 103, y: 212,   scale: 0.25 },
+      { src: "book19.png", x: 118, y: 223,   scale: 0.23 },
+      { src: "book20.png", x: 128, y: 232,   scale: 0.22 },
+      { src: "book21.png", x: 144, y: 200,   scale: 0.25 },
+      { src: "book22.png", x: 158, y: 207,   scale: 0.24 },
       // Row 3
-      { src: "book23.png", shelf: 2, order: 0, scale: 0.25 },
-      { src: "book24.png", shelf: 2, order: 1, scale: 0.25 },
-      { src: "book25.png", shelf: 2, order: 2, scale: 0.25 },
-      { src: "book26.png", shelf: 2, order: 3, scale: 0.25 },
-      { src: "book27.png", shelf: 2, order: 4, scale: 0.20 },
-      { src: "book28.png", shelf: 2, order: 5, scale: 0.25 },
-      { src: "book29.png", shelf: 2, order: 6, scale: 0.20 },
-      { src: "book30.png", shelf: 2, order: 7, scale: 0.25 },
-      { src: "book31.png", shelf: 2, order: 8, scale: 0.25 },
-      { src: "book32.png", shelf: 2, order: 9, scale: 0.20 },
-      { src: "book33.png", shelf: 2, order: 10, scale: 0.25 },
+      { src: "book23.png", x: 14,  y: 370,   scale: 0.25 },
+      { src: "book24.png", x: 26,  y: 370,   scale: 0.25 },
+      { src: "book25.png", x: 40,  y: 370,   scale: 0.25 },
+      { src: "book26.png", x: 55,  y: 370,   scale: 0.25 },
+      { src: "book27.png", x: 70,  y: 400,   scale: 0.20 },
+      { src: "book28.png", x: 80,  y: 370,   scale: 0.25 },
+      { src: "book29.png", x: 95,  y: 400,   scale: 0.20 },
+      { src: "book30.png", x: 115, y: 380,   scale: 0.25 },
+      { src: "book31.png", x: 130, y: 372.5, scale: 0.25 },
+      { src: "book32.png", x: 150, y: 400.5, scale: 0.20 },
+      { src: "book33.png", x: 165, y: 395.5, scale: 0.25 },
       // Row 4
-      { src: "book46.png", shelf: 3, order: 0, scale: 0.25 },
-      { src: "book48.png", shelf: 3, order: 1, scale: 0.25 },
-      { src: "book49.png", shelf: 3, order: 2, scale: 0.25 },
-      { src: "book50.png", shelf: 3, order: 3, scale: 0.25 },
-      { src: "book51.png", shelf: 3, order: 4, scale: 0.25 },
-      { src: "book52.png", shelf: 3, order: 5, scale: 0.25 },
-      { src: "book53.png", shelf: 3, order: 6, scale: 0.25 },
-      { src: "book55.png", shelf: 3, order: 7, scale: 0.25 },
-      { src: "book56.png", shelf: 3, order: 8, scale: 0.25 },
-      { src: "book57.png", shelf: 3, order: 9, scale: 0.25 },
-      { src: "book58.png", shelf: 3, order: 10, scale: 0.25 },
+      { src: "book46.png", x: 14,  y: 550,   scale: 0.25 },
+      { src: "book48.png", x: 26,  y: 550,   scale: 0.25 },
+      { src: "book49.png", x: 40,  y: 550,   scale: 0.25 },
+      { src: "book50.png", x: 55,  y: 551.5, scale: 0.25 },
+      { src: "book51.png", x: 70,  y: 550,   scale: 0.25 },
+      { src: "book52.png", x: 80,  y: 550,   scale: 0.25 },
+      { src: "book53.png", x: 95,  y: 550,   scale: 0.25 },
+      { src: "book55.png", x: 115, y: 550,   scale: 0.25 },
+      { src: "book56.png", x: 130, y: 550,   scale: 0.25 },
+      { src: "book57.png", x: 145, y: 550,   scale: 0.25 },
+      { src: "book58.png", x: 155, y: 550,   scale: 0.25 },
     ];
 
-    // ================================================================
-    //  🖥️  PC BOOK DATA (same structure)
-    // ================================================================
-    const booksDataPC = [
-      // Row 1
-      { src: "book1.png",  shelf: 0, order: 0, scale: 0.22 },
-      { src: "book2.png",  shelf: 0, order: 1, scale: 0.22 },
-      { src: "book3.png",  shelf: 0, order: 2, scale: 0.19 },
-      { src: "book4.png",  shelf: 0, order: 3, scale: 0.20 },
-      { src: "book5.png",  shelf: 0, order: 4, scale: 0.17 },
-      { src: "book6.png",  shelf: 0, order: 5, scale: 0.17 },
-      { src: "book7.png",  shelf: 0, order: 6, scale: 0.18 },
-      { src: "book8.png",  shelf: 0, order: 7, scale: 0.19 },
-      { src: "book9.png",  shelf: 0, order: 8, scale: 0.19 },
-      { src: "book10.png", shelf: 0, order: 9, scale: 0.21 },
-      { src: "book11.png", shelf: 0, order: 10, scale: 0.22 },
-      // Row 2
-      { src: "book12.png", shelf: 1, order: 0, scale: 0.21 },
-      { src: "book13.png", shelf: 1, order: 1, scale: 0.21 },
-      { src: "book14.png", shelf: 1, order: 2, scale: 0.22 },
-      { src: "book15.png", shelf: 1, order: 3, scale: 0.22 },
-      { src: "book16.png", shelf: 1, order: 4, scale: 0.22 },
-      { src: "book17.png", shelf: 1, order: 5, scale: 0.22 },
-      { src: "book18.png", shelf: 1, order: 6, scale: 0.22 },
-      { src: "book19.png", shelf: 1, order: 7, scale: 0.20 },
-      { src: "book20.png", shelf: 1, order: 8, scale: 0.20 },
-      { src: "book21.png", shelf: 1, order: 9, scale: 0.22 },
-      { src: "book22.png", shelf: 1, order: 10, scale: 0.21 },
-      // Row 3
-      { src: "book23.png", shelf: 2, order: 0, scale: 0.25 },
-      { src: "book24.png", shelf: 2, order: 1, scale: 0.25 },
-      { src: "book25.png", shelf: 2, order: 2, scale: 0.25 },
-      { src: "book26.png", shelf: 2, order: 3, scale: 0.25 },
-      { src: "book27.png", shelf: 2, order: 4, scale: 0.20 },
-      { src: "book28.png", shelf: 2, order: 5, scale: 0.25 },
-      { src: "book29.png", shelf: 2, order: 6, scale: 0.20 },
-      { src: "book30.png", shelf: 2, order: 7, scale: 0.25 },
-      { src: "book31.png", shelf: 2, order: 8, scale: 0.25 },
-      { src: "book32.png", shelf: 2, order: 9, scale: 0.20 },
-      { src: "book33.png", shelf: 2, order: 10, scale: 0.25 },
-      // Row 4
-      { src: "book46.png", shelf: 3, order: 0, scale: 0.25 },
-      { src: "book48.png", shelf: 3, order: 1, scale: 0.25 },
-      { src: "book49.png", shelf: 3, order: 2, scale: 0.25 },
-      { src: "book50.png", shelf: 3, order: 3, scale: 0.25 },
-      { src: "book51.png", shelf: 3, order: 4, scale: 0.25 },
-      { src: "book52.png", shelf: 3, order: 5, scale: 0.25 },
-      { src: "book53.png", shelf: 3, order: 6, scale: 0.25 },
-      { src: "book55.png", shelf: 3, order: 7, scale: 0.25 },
-      { src: "book56.png", shelf: 3, order: 8, scale: 0.25 },
-      { src: "book57.png", shelf: 3, order: 9, scale: 0.25 },
-      { src: "book58.png", shelf: 3, order: 10, scale: 0.25 },
+    // PC version – same structure
+    const rawBooksPC = [
+      { src: "book1.png",  x: 84,  y: 29,   scale: 0.22 },
+      { src: "book2.png",  x: 100, y: 28.5, scale: 0.22 },
+      { src: "book3.png",  x: 113, y: 46,   scale: 0.19 },
+      { src: "book4.png",  x: 193, y: 41.5, scale: 0.20 },
+      { src: "book5.png",  x: 138, y: 58.8, scale: 0.17 },
+      { src: "book6.png",  x: 153, y: 58,   scale: 0.17 },
+      { src: "book7.png",  x: 168, y: 52,   scale: 0.18 },
+      { src: "book8.png",  x: 183, y: 46.5, scale: 0.19 },
+      { src: "book9.png",  x: 128, y: 47,   scale: 0.19 },
+      { src: "book10.png", x: 213, y: 35,   scale: 0.21 },
+      { src: "book11.png", x: 227.5, y: 28.5, scale: 0.22 },
+      { src: "book12.png", x: 84,  y: 202,  scale: 0.21 },
+      { src: "book13.png", x: 98,  y: 202,  scale: 0.21 },
+      { src: "book14.png", x: 115, y: 197,  scale: 0.22 },
+      { src: "book15.png", x: 128, y: 197,  scale: 0.22 },
+      { src: "book16.png", x: 138, y: 197,  scale: 0.22 },
+      { src: "book17.png", x: 153, y: 197,  scale: 0.22 },
+      { src: "book18.png", x: 168, y: 197,  scale: 0.22 },
+      { src: "book19.png", x: 183, y: 208,  scale: 0.20 },
+      { src: "book20.png", x: 193, y: 211,  scale: 0.20 },
+      { src: "book21.png", x: 213, y: 187,  scale: 0.22 },
+      { src: "book22.png", x: 227, y: 193,  scale: 0.21 },
+      { src: "book23.png", x: 84,  y: 325,  scale: 0.25 },
+      { src: "book24.png", x: 98,  y: 325,  scale: 0.25 },
+      { src: "book25.png", x: 115, y: 325,  scale: 0.25 },
+      { src: "book26.png", x: 128, y: 325,  scale: 0.25 },
+      { src: "book27.png", x: 138, y: 355,  scale: 0.20 },
+      { src: "book28.png", x: 153, y: 325,  scale: 0.25 },
+      { src: "book29.png", x: 168, y: 355,  scale: 0.20 },
+      { src: "book30.png", x: 183, y: 338,  scale: 0.25 },
+      { src: "book31.png", x: 193, y: 325,  scale: 0.25 },
+      { src: "book32.png", x: 213, y: 355,  scale: 0.20 },
+      { src: "book33.png", x: 227, y: 350,  scale: 0.25 },
+      { src: "book46.png", x: 84,  y: 500,  scale: 0.25 },
+      { src: "book48.png", x: 98,  y: 500,  scale: 0.25 },
+      { src: "book49.png", x: 115, y: 500,  scale: 0.25 },
+      { src: "book50.png", x: 128, y: 500,  scale: 0.25 },
+      { src: "book51.png", x: 138, y: 500,  scale: 0.25 },
+      { src: "book52.png", x: 153, y: 500,  scale: 0.25 },
+      { src: "book53.png", x: 168, y: 500,  scale: 0.25 },
+      { src: "book55.png", x: 183, y: 500,  scale: 0.25 },
+      { src: "book56.png", x: 193, y: 500,  scale: 0.25 },
+      { src: "book57.png", x: 213, y: 500,  scale: 0.25 },
+      { src: "book58.png", x: 227, y: 500,  scale: 0.25 },
     ];
 
     // ================================================================
@@ -254,89 +227,129 @@
     // ================================================================
     const PC_BREAKPOINT = 1024;
     const isPC = window.innerWidth > PC_BREAKPOINT;
-    const booksData = isPC ? booksDataPC : booksDataMobile;
+    const rawData = isPC ? rawBooksPC : rawBooksMobile;
+
+    // Assign shelf index based on Y proximity
+    const SHELF_Y_MAP = [28, 212, 370, 550];
+    function getShelfIndex(y) {
+      let minDist = Infinity, idx = 0;
+      SHELF_Y_MAP.forEach((sy, i) => {
+        const d = Math.abs(y - sy);
+        if (d < minDist) { minDist = d; idx = i; }
+      });
+      return idx;
+    }
+
+    // Build data array with shelf and order
+    const booksData = rawData.map((book, index) => {
+      const shelf = getShelfIndex(book.y);
+      return { ...book, shelf, order: index };
+    });
+    booksData.sort((a, b) => a.shelf - b.shelf || a.order - b.order);
 
     const container = document.getElementById('bookshelfContainer');
-    const SHELF_HEIGHT = 120; // must match CSS .shelf-row height
+    const imageSizes = {};
 
-    function groupByShelf(books) {
+    function renderShelves() {
+      // Remove old elements
+      container.querySelectorAll('.book-item').forEach(el => el.remove());
+
+      // Group by shelf
       const groups = {};
-      books.forEach(book => {
+      booksData.forEach(book => {
         if (!groups[book.shelf]) groups[book.shelf] = [];
         groups[book.shelf].push(book);
       });
-      for (const key in groups) {
-        groups[key].sort((a, b) => a.order - b.order);
-      }
-      return groups;
-    }
 
-    function renderShelves() {
-      container.querySelectorAll('.shelf-row').forEach(el => el.remove());
+      const shelfKeys = Object.keys(groups).sort((a,b) => a-b);
+      shelfKeys.forEach(shelfIdx => {
+        const books = groups[shelfIdx];
+        books.sort((a,b) => a.order - b.order);
 
-      const grouped = groupByShelf(booksData);
-      const shelfKeys = Object.keys(grouped).sort((a,b) => a - b);
+        // Compute packed X positions (left to right, no gaps)
+        let currentX = 10; // left padding
+        books.forEach(book => {
+          const size = imageSizes[book.src] || { width: 50, height: 50 };
+          const scaledWidth = size.width * book.scale;
+          const scaledHeight = size.height * book.scale;
 
-      shelfKeys.forEach(shelfIndex => {
-        const shelfDiv = document.createElement('div');
-        shelfDiv.className = 'shelf-row';
-        shelfDiv.dataset.shelf = shelfIndex;
-        const y = SHELF_Y[shelfIndex] || 0;
-        shelfDiv.style.top = y + 'px';
-        shelfDiv.style.height = SHELF_HEIGHT + 'px';
-
-        const books = grouped[shelfIndex];
-        books.forEach((book) => {
+          // Create book element
           const item = document.createElement('div');
           item.className = 'book-item';
           item.dataset.src = book.src;
+          // Use the book's original Y (not relative to shelf)
+          item.style.left = currentX + 'px';
+          item.style.top = book.y + 'px';  // ← KEEP ORIGINAL Y
 
           const img = document.createElement('img');
           img.src = book.src;
           img.alt = book.src;
-          // Set explicit height = shelf height * scale
-          const scale = book.scale || 1;
-          img.style.height = (SHELF_HEIGHT * scale) + 'px';
-          // width auto to preserve aspect ratio
+          img.style.width = scaledWidth + 'px';
+          img.style.height = scaledHeight + 'px';
 
           item.appendChild(img);
-          shelfDiv.appendChild(item);
-        });
+          container.appendChild(item);
 
-        container.appendChild(shelfDiv);
-      });
-
-      // Init Sortable on each shelf
-      document.querySelectorAll('.shelf-row').forEach(row => {
-        new Sortable(row, {
-          group: 'books',
-          animation: 150,
-          ghostClass: 'sortable-ghost',
-          chosenClass: 'sortable-chosen',
-          dragClass: 'sortable-drag',
-          onEnd: function(evt) {
-            // Update data model after drop
-            const shelf = parseInt(evt.to.dataset.shelf, 10);
-            const movedSrc = evt.item.dataset.src;
-            const book = booksData.find(b => b.src === movedSrc);
-            if (!book) return;
-            book.shelf = shelf;
-            // Reassign orders based on current DOM order
-            document.querySelectorAll('.shelf-row').forEach(row => {
-              const shelfIdx = parseInt(row.dataset.shelf, 10);
-              const items = row.querySelectorAll('.book-item');
-              items.forEach((item, idx) => {
-                const src = item.dataset.src;
-                const b = booksData.find(b => b.src === src);
-                if (b) b.order = idx;
-              });
-            });
-            // Re-render to refresh sizes (optional, but ensures consistency)
-            // We can just re-render; it's quick.
-            renderShelves();
-          }
+          currentX += scaledWidth;
         });
       });
+
+      // Apply Sortable to the container (all books are direct children)
+      new Sortable(container, {
+        group: 'books',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        // We need to handle drag between shelves manually
+        // We'll use the onEnd to update shelf based on Y position
+        onEnd: function(evt) {
+          const movedSrc = evt.item.dataset.src;
+          const book = booksData.find(b => b.src === movedSrc);
+          if (!book) return;
+
+          // Determine new shelf based on the drop position's Y
+          const dropY = evt.item.style.top; // we get the Y from the element
+          // But we need the Y of the drop point – we can get the mouse Y
+          // Instead, we'll use the final position of the dragged item
+          const rect = evt.item.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const relativeY = rect.top - containerRect.top + window.scrollY;
+          // Map to shelf
+          const newShelf = getShelfIndex(relativeY);
+          book.shelf = newShelf;
+
+          // Reassign orders based on DOM order
+          const items = container.querySelectorAll('.book-item');
+          items.forEach((item, idx) => {
+            const src = item.dataset.src;
+            const b = booksData.find(b => b.src === src);
+            if (b) b.order = idx;
+          });
+
+          // Re-render
+          renderShelves();
+        }
+      });
+    }
+
+    // Load images to get natural dimensions
+    function loadImages(callback) {
+      const promises = booksData.map(book => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = function() {
+            imageSizes[book.src] = { width: this.naturalWidth, height: this.naturalHeight };
+            resolve();
+          };
+          img.onerror = function() {
+            imageSizes[book.src] = { width: 100, height: 150 };
+            resolve();
+          };
+          img.src = book.src;
+        });
+      });
+      Promise.all(promises).then(callback);
     }
 
     // ---- Inject side decorations (PC only) ----
@@ -363,9 +376,11 @@
       }
     }
 
-    // Initial render
-    renderShelves();
-    console.log(isPC ? '🖥️ PC – stable sizes' : '📱 – stable sizes');
+    // Start
+    loadImages(() => {
+      renderShelves();
+      console.log(isPC ? '🖥️ PC – Y positions preserved' : '📱 – Y positions preserved');
+    });
   </script>
 </body>
 </html>
