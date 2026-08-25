@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bookshelf – locked box puzzle with insertion marker</title>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js">
+  </script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      background-color: #2c1a12;
+    }
+    #app {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+      align-items: stretch;
+      justify-content: center;
+      background-color: #2c1a12;
+    }
+    .scene {
+      position: relative;
+      width: 100vw;
+      min-height: 100vh;
+      height: auto;
+      background-image: url('sbackground.jpg');
+      background-size: cover;
+      background-position: center bottom;
+      background-repeat: no-repeat;
+      background-color: #2c1a12;
+      flex-shrink: 0;
+    }
+    .decor-container {
+      display: none;
+      flex: 1 1 0;
+      overflow: hidden;
+      background-color: #2c1a12;
+      align-items: center;
+      justify-content: center;
+    }
+    .decor-container img {
+      height: 100%;
+      width: auto;
+      flex-shrink: 0;
+    }
+    .picture-item {
+      position: absolute;
+      pointer-events: none;
+      transform-origin: top left;
+      z-index: 5;
+      opacity: 0.9;
+    }
+    .picture-item img {
+      display: block;
+      pointer-events: none;
+      width: 100%;
+      height: auto;
+    }
+    .book-item {
+      position: absolute;
+      pointer-events: auto;
+      cursor: grab;
+      transform-origin: top left;
+      z-index: 10;
+    }
+    .book-item img {
+      display: block;
+      pointer-events: none;
+    }
+    .book-item.sortable-chosen {
+      opacity: 0.7;
+      outline: 2px solid #ffd700;
+      z-index: 100;
+    }
+    .book-item.sortable-ghost {
+      opacity: 0.3;
+    }
+    /* insertion marker – slim gold line */
+    .insert-marker {
+      position: absolute;
+      width: 3px;
+      height: 50px;
+      background: #ffd700;
+      border-radius: 2px;
+      z-index: 99;
+      pointer-events: none;
+      box-shadow: 0 0 12px #ffd700, 0 0 24px #ffaa00;
+      transition: left 0.08s ease;
+    }
+    .box-item {
+      position: absolute;
+      pointer-events: auto;
+      cursor: pointer;
+      transform-origin: top left;
+      z-index: 20;
+      transition: left 0.2s ease, top 0.2s ease, transform 0.2s ease;
+    }
+    .box-item img {
+      display: block;
+      pointer-events: none;
+    }
+    .box-item.locked::after {
+      content: '🔒';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(2);
+      font-size: 40px;
+      pointer-events: none;
+      z-index: 30;
+      text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+    @media (min-width: 1024px) {
+      html,
+      body {
+        overflow: hidden;
+        height: 100%;
+      }
+      #app {
+        min-height: 0;
+        height: 100vh;
+        flex-direction: row;
+      }
+      .scene {
+        max-width: 1300px;
+        height: 100vh;
+        min-height: 0;
+        background-size: contain;
+        background-position: center;
+        flex: 1 1 0;
+        width: 100%;
+      }
+      .decor-container {
+        display: flex;
+        flex: 1 1 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="decor-left" class="decor-container"></div>
+    <div class="scene" id="bookshelfContainer"></div>
+    <div id="decor-right" class="decor-container"></div>
+  </div>
+
+  <script>
+    const PC_X_OFFSET = 80;
+
+    // ----- BOOK DATA -----
+    const rawBooksMobile = [
+      { src: "book1.png", x: 14, y: 28.7, scale: 0.25 },
+      { src: "book2.png", x: 30, y: 28, scale: 0.25 },
+      { src: "book3.png", x: 41, y: 45.5, scale: 0.22 },
+      { src: "book4.png", x: 58, y: 41.5, scale: 0.23 },
+      { src: "book5.png", x: 78, y: 58.4, scale: 0.20 },
+      { src: "book6.png", x: 93, y: 57, scale: 0.20 },
+      { src: "book7.png", x: 108, y: 51, scale: 0.21 },
+      { src: "book8.png", x: 123, y: 45, scale: 0.22 },
+      { src: "book9.png", x: 133, y: 45, scale: 0.22 },
+      { src: "book10.png", x: 143, y: 35, scale: 0.24 },
+      { src: "book11.png", x: 158, y: 28, scale: 0.25 },
+      { src: "book12.png", x: 14, y: 219, scale: 0.24 },
+      { src: "book13.png", x: 26, y: 223, scale: 0.23 },
+      { src: "book14.png", x: 43, y: 229, scale: 0.22 },
+      { src: "book15.png", x: 58, y: 212, scale: 0.25 },
+      { src: "book16.png", x: 73, y: 212, scale: 0.25 },
+      { src: "book17.png", x: 88, y: 212, scale: 0.25 },
+      { src: "book18.png", x: 103, y: 212, scale: 0.25 },
+      { src: "book19.png", x: 118, y: 223, scale: 0.23 },
+      { src: "book20.png", x: 128, y: 232, scale: 0.22 },
+      { src: "book21.png", x: 144, y: 200, scale: 0.25 },
+      { src: "book22.png", x: 158, y: 207, scale: 0.24 },
+      { src: "book23.png", x: 14, y: 370, scale: 0.25 },
+      { src: "book24.png", x: 26, y: 370, scale: 0.25 },
+      { src: "book25.png", x: 40, y: 370, scale: 0.25 },
+      { src: "book26.png", x: 55, y: 370, scale: 0.25 },
+      { src: "book27.png", x: 70, y: 400, scale: 0.20 },
+      { src: "book28.png", x: 80, y: 370, scale: 0.25 },
+      { src: "book29.png", x: 95, y: 400, scale: 0.20 },
+      { src: "book30.png", x: 115, y: 380, scale: 0.25 },
+      { src: "book31.png", x: 130, y: 372.5, scale: 0.25 },
+      { src: "book32.png", x: 150, y: 400.5, scale: 0.20 },
+      { src: "book33.png", x: 165, y: 395.5, scale: 0.25 },
+      { src: "book46.png", x: 14, y: 550, scale: 0.25 },
+      { src: "book48.png", x: 26, y: 550, scale: 0.25 },
+      { src: "book49.png", x: 40, y: 550, scale: 0.25 },
+      { src: "book50.png", x: 55, y: 551.5, scale: 0.25 },
+      { src: "book51.png", x: 70, y: 550, scale: 0.25 },
+      { src: "book52.png", x: 80, y: 550, scale: 0.25 },
+      { src: "book53.png", x: 95, y: 550, scale: 0.25 },
+      { src: "book55.png", x: 115, y: 550, scale: 0.25 },
+      { src: "book56.png", x: 130, y: 550, scale: 0.25 },
+      { src: "book57.png", x: 145, y: 550, scale: 0.25 },
+      { src: "book58.png", x: 155, y: 550, scale: 0.25 },
+    ];
+
+    const rawBooksPC = [
+      { src: "book1.png", x: 84, y: 29, scale: 0.22 },
+      { src: "book2.png", x: 100, y: 28.5, scale: 0.22 },
+      { src: "book3.png", x: 113, y: 46, scale: 0.19 },
+      { src: "book4.png", x: 193, y: 41.5, scale: 0.20 },
+      { src: "book5.png", x: 138, y: 58.8, scale: 0.17 },
+      { src: "book6.png", x: 153, y: 58, scale: 0.17 },
+      { src: "book7.png", x: 168, y: 52, scale: 0.18 },
+      { src: "book8.png", x: 183, y: 46.5, scale: 0.19 },
+      { src: "book9.png", x: 128, y: 47, scale: 0.19 },
+      { src: "book10.png", x: 213, y: 35, scale: 0.21 },
+      { src: "book11.png", x: 227.5, y: 28.5, scale: 0.22 },
+      { src: "book12.png", x: 84, y: 202, scale: 0.21 },
+      { src: "book13.png", x: 98, y: 202, scale: 0.21 },
+      { src: "book14.png", x: 115, y: 197, scale: 0.22 },
+      { src: "book15.png", x: 128, y: 197, scale: 0.22 },
+      { src: "book16.png", x: 138, y: 197, scale: 0.22 },
+      { src: "book17.png", x: 153, y: 197, scale: 0.22 },
+      { src: "book18.png", x: 168, y: 197, scale: 0.22 },
+      { src: "book19.png", x: 183, y: 208, scale: 0.20 },
+      { src: "book20.png", x: 193, y: 211, scale: 0.20 },
+      { src: "book21.png", x: 213, y: 187, scale: 0.22 },
+      { src: "book22.png", x: 227, y: 193, scale: 0.21 },
+      { src: "book23.png", x: 84, y: 325, scale: 0.25 },
+      { src: "book24.png", x: 98, y: 325, scale: 0.25 },
+      { src: "book25.png", x: 115, y: 325, scale: 0.25 },
+      { src: "book26.png", x: 128, y: 325, scale: 0.25 },
+      { src: "book27.png", x: 138, y: 355, scale: 0.20 },
+      { src: "book28.png", x: 153, y: 325, scale: 0.25 },
+      { src: "book29.png", x: 168, y: 355, scale: 0.20 },
+      { src: "book30.png", x: 183, y: 338, scale: 0.25 },
+      { src: "book31.png", x: 193, y: 325, scale: 0.25 },
+      { src: "book32.png", x: 213, y: 355, scale: 0.20 },
+      { src: "book33.png", x: 227, y: 350, scale: 0.25 },
+      { src: "book46.png", x: 84, y: 500, scale: 0.25 },
+      { src: "book48.png", x: 98, y: 500, scale: 0.25 },
+      { src: "book49.png", x: 115, y: 500, scale: 0.25 },
+      { src: "book50.png", x: 128, y: 500, scale: 0.25 },
+      { src: "book51.png", x: 138, y: 500, scale: 0.25 },
+      { src: "book52.png", x: 153, y: 500, scale: 0.25 },
+      { src: "book53.png", x: 168, y: 500, scale: 0.25 },
+      { src: "book55.png", x: 183, y: 500, scale: 0.25 },
+      { src: "book56.png", x: 193, y: 500, scale: 0.25 },
+      { src: "book57.png", x: 213, y: 500, scale: 0.25 },
+      { src: "book58.png", x: 227, y: 500, scale: 0.25 },
+    ];
+
+    // ----- BOX DATA -----
+    const boxesDataMobile = [
+      { id: 1, closedImg: "boxclosed1.png", openImg: "boxopen1.png", closedX: 255, closedY: 120, closedScale: 0.1,
+        openX: 255, openY: 120, openScale: 0.1 },
+      { id: 2, closedImg: "boxclosed2.png", openImg: "boxopen2.png", closedX: 255, closedY: 299, closedScale: 0.1,
+        openX: 255, openY: 299, openScale: 0.1 },
+      { id: 3, closedImg: "boxclosed3.png", openImg: "boxopen3.png", closedX: 255, closedY: 470, closedScale: 0.1,
+        openX: 255, openY: 470, openScale: 0.1 },
+      { id: 4, closedImg: "boxclosed4.png", openImg: "boxopen4.png", closedX: 255, closedY: 640, closedScale: 0.1,
+        openX: 255, openY: 625.8, openScale: 0.087 },
+    ];
+    const boxesDataPC = [
+      { id: 1, closedImg: "boxclosed1.png", openImg: "boxopen1.png", closedX: 255, closedY: 120, closedScale: 0.1,
+        openX: 255, openY: 120, openScale: 0.1 },
+      { id: 2, closedImg: "boxclosed2.png", openImg: "boxopen2.png", closedX: 255, closedY: 299, closedScale: 0.1,
+        openX: 255, openY: 299, openScale: 0.1 },
+      { id: 3, closedImg: "boxclosed3.png", openImg: "boxopen3.png", closedX: 255, closedY: 470, closedScale: 0.1,
+        openX: 255, openY: 470, openScale: 0.1 },
+      { id: 4, closedImg: "boxclosed4.png", openImg: "boxopen4.png", closedX: 255, closedY: 640, closedScale: 0.1,
+        openX: 255, openY: 620.5, openScale: 0.085 },
+    ];
+
+    // ----- COLOUR PICTURES -----
+    const colourPictures = [
+      { src: "book1colour.jpg", x: 64, y: 69, scale: 0.025 },
+      { src: "book2colour.jpg", x: 102, y: 69, scale: 0.025 },
+      { src: "book3colour.jpg", x: 160, y: 69, scale: 0.025 },
+      { src: "book4colour.jpg", x: 52, y: 69, scale: 0.025 },
+      { src: "book5colour.jpg", x: 16, y: 69, scale: 0.025 },
+      { src: "book6colour.jpg", x: 121, y: 69, scale: 0.025 },
+      { src: "book7colour.jpg", x: 145, y: 69, scale: 0.025 },
+      { src: "book8colour.jpg", x: 136, y: 69, scale: 0.025 },
+      { src: "book9colour.jpg", x: 39, y: 69, scale: 0.025 },
+      { src: "book10colour.jpg", x: 175, y: 69, scale: 0.025 },
+      { src: "book11colour.jpg", x: 30, y: 69, scale: 0.025 },
+    ];
+
+    // ================================================================
+    //  🔑  CORRECT SEQUENCE
+    // ================================================================
+    const CORRECT_SEQUENCE = [
+      'book5.png',
+      'book11.png',
+      'book9.png',
+      'book4.png',
+      'book1.png',
+      'book2.png',
+      'book6.png',
+      'book8.png',
+      'book7.png',
+      'book3.png',
+      'book10.png'
+    ];
+
+    // ================================================================
+    //  🚀  BUILD
+    // ================================================================
+    const PC_BREAKPOINT = 1024;
+    const isPC = window.innerWidth > PC_BREAKPOINT;
+    const rawData = isPC ? rawBooksPC : rawBooksMobile;
+    const boxesData = isPC ? boxesDataPC : boxesDataMobile;
+
+    const SHELF_Y_MAP = [28, 212, 370, 550];
+
+    function getShelfIndex(y) {
+      let minDist = Infinity,
+        idx = 0;
+      SHELF_Y_MAP.forEach((sy, i) => {
+        const d = Math.abs(y - sy);
+        if (d < minDist) { minDist = d;
+          idx = i; }
+      });
+      return idx;
+    }
+
+    const booksData = rawData.map((book, index) => {
+      const shelf = getShelfIndex(book.y);
+      return { ...book, shelf, order: index };
+    });
+    booksData.sort((a, b) => a.shelf - b.shelf || a.order - b.order);
+
+    const container = document.getElementById('bookshelfContainer');
+    const imageSizes = {};
+
+    let box1Unlocked = false;
+
+    function checkSequence() {
+      const shelfBooks = booksData
+        .filter(b => b.shelf === 0)
+        .sort((a, b) => a.order - b.order);
+      if (shelfBooks.length !== CORRECT_SEQUENCE.length) return false;
+      for (let i = 0; i < CORRECT_SEQUENCE.length; i++) {
+        if (shelfBooks[i].src !== CORRECT_SEQUENCE[i]) return false;
+      }
+      return true;
+    }
+
+    function forceOpenBox1() {
+      const xOffset = isPC ? PC_X_OFFSET : 0;
+      const box = boxesData.find(b => b.id === 1);
+      if (!box) return;
+
+      const boxEl = container.querySelector('.box-item[data-box-id="1"]');
+      if (boxEl) {
+        const img = boxEl.querySelector('img');
+        if (img) {
+          img.src = box.openImg;
+          img.dataset.isOpen = 'true';
+          boxEl.style.left = (box.openX + xOffset) + 'px';
+          boxEl.style.top = box.openY + 'px';
+          boxEl.style.transform = `scale(${box.openScale})`;
+        }
+        boxEl.classList.remove('locked');
+      }
+      box1Unlocked = true;
+      console.log('🎉 Box 1 opened!');
+    }
+
+    // ----- Render functions -----
+    function renderPictures() {
+      container.querySelectorAll('.picture-item').forEach(el => el.remove());
+      const xOffset = isPC ? PC_X_OFFSET : 0;
+
+      colourPictures.forEach(pic => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'picture-item';
+        wrapper.style.left = (pic.x + xOffset) + 'px';
+        wrapper.style.top = pic.y + 'px';
+        wrapper.style.transform = `scale(${pic.scale})`;
+        wrapper.style.transformOrigin = 'top left';
+        wrapper.style.width = '300px';
+        wrapper.style.height = 'auto';
+
+        const img = document.createElement('img');
+        img.src = pic.src;
+        img.alt = pic.src;
+        img.style.width = '100%';
+        img.style.height = 'auto';
+
+        img.onerror = function() {
+          this.style.backgroundColor = '#885533';
+          this.style.width = '100%';
+          this.style.height = '200px';
+          this.alt = 'missing';
+        };
+
+        wrapper.appendChild(img);
+        container.appendChild(wrapper);
+      });
+    }
+
+    let insertMarker = null;
+
+    function clearInsertionMarker() {
+      if (insertMarker) { insertMarker.remove();
+        insertMarker = null; }
+    }
+
+    function updateInsertionMarker(dragEvent) {
+      clearInsertionMarker();
+
+      const target = dragEvent.related;
+      const dragged = dragEvent.dragged;
+      if (!target || !dragged) return;
+
+      const targetBook = booksData.find(b => b.src === target.dataset.src);
+      if (!targetBook) return;
+
+      // Only show marker on shelf 0 (top shelf) – the puzzle shelf
+      if (targetBook.shelf !== 0) return;
+
+      const shelfBooks = booksData
+        .filter(b => b.shelf === 0)
+        .sort((a, b) => a.order - b.order);
+
+      const targetRect = target.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const mouseX = dragEvent.originalEvent.clientX;
+      const midX = targetRect.left + targetRect.width / 2;
+      const targetIdx = shelfBooks.findIndex(b => b.src === target.dataset.src);
+
+      let beforeIdx = -1,
+        afterIdx = -1;
+      if (mouseX < midX) {
+        beforeIdx = targetIdx - 1;
+        afterIdx = targetIdx;
+      } else {
+        beforeIdx = targetIdx;
+        afterIdx = targetIdx + 1;
+      }
+
+      // Clamp
+      if (beforeIdx < 0) beforeIdx = -1;
+      if (afterIdx >= shelfBooks.length) afterIdx = shelfBooks.length;
+
+      let insertX = null;
+      const xOffset = isPC ? PC_X_OFFSET : 0;
+
+      // Calculate X position between the two books (or at edges)
+      if (beforeIdx >= 0 && afterIdx < shelfBooks.length) {
+        const beforeBook = shelfBooks[beforeIdx];
+        const afterBook = shelfBooks[afterIdx];
+        const beforeEl = container.querySelector(`.book-item[data-src="${beforeBook.src}"]`);
+        const afterEl = container.querySelector(`.book-item[data-src="${afterBook.src}"]`);
+        if (beforeEl && afterEl) {
+          const beforeRect = beforeEl.getBoundingClientRect();
+          const afterRect = afterEl.getBoundingClientRect();
+          const beforeRight = beforeRect.right - containerRect.left;
+          const afterLeft = afterRect.left - containerRect.left;
+          insertX = (beforeRight + afterLeft) / 2;
+        }
+      } else if (beforeIdx >= 0 && beforeIdx < shelfBooks.length) {
+        // Insert after the last book (right edge)
+        const beforeBook = shelfBooks[beforeIdx];
+        const beforeEl = container.querySelector(`.book-item[data-src="${beforeBook.src}"]`);
+        if (beforeEl) {
+          const beforeRect = beforeEl.getBoundingClientRect();
+          insertX = beforeRect.right - containerRect.left + 6;
+        }
+      } else if (afterIdx >= 0 && afterIdx < shelfBooks.length) {
+        // Insert before the first book (left edge)
+        const afterBook = shelfBooks[afterIdx];
+        const afterEl = container.querySelector(`.book-item[data-src="${afterBook.src}"]`);
+        if (afterEl) {
+          const afterRect = afterEl.getBoundingClientRect();
+          insertX = afterRect.left - containerRect.left - 6;
+        }
+      }
+
+      if (insertX === null) return;
+
+      // Create marker
+      insertMarker = document.createElement('div');
+      insertMarker.className = 'insert-marker';
+      const shelfY = shelfBooks[0] ? shelfBooks[0].y : 28;
+      insertMarker.style.left = insertX + 'px';
+      insertMarker.style.top = (shelfY - 8) + 'px'; // center vertically on the shelf
+      container.appendChild(insertMarker);
+    }
+
+    function renderBooks() {
+      container.querySelectorAll('.book-item').forEach(el => el.remove());
+      clearInsertionMarker();
+
+      const groups = {};
+      booksData.forEach(book => {
+        if (!groups[book.shelf]) groups[book.shelf] = [];
+        groups[book.shelf].push(book);
+      });
+
+      const shelfKeys = Object.keys(groups).sort((a, b) => a - b);
+      shelfKeys.forEach(shelfIdx => {
+        const books = groups[shelfIdx];
+        books.sort((a, b) => a.order - b.order);
+
+        let currentX = 10;
+        const xOffset = isPC ? PC_X_OFFSET : 0;
+
+        books.forEach(book => {
+          const size = imageSizes[book.src] || { width: 50, height: 50 };
+          const scaledW = size.width * book.scale;
+          const scaledH = size.height * book.scale;
+
+          const item = document.createElement('div');
+          item.className = 'book-item';
+          item.dataset.src = book.src;
+          item.style.left = (currentX + xOffset) + 'px';
+          item.style.top = book.y + 'px';
+
+          const img = document.createElement('img');
+          img.src = book.src;
+          img.alt = book.src;
+          img.style.width = scaledW + 'px';
+          img.style.height = scaledH + 'px';
+
+          item.appendChild(img);
+          container.appendChild(item);
+          currentX += scaledW;
+        });
+      });
+
+      if (window.sortableInstance) window.sortableInstance.destroy();
+      window.sortableInstance = new Sortable(container, {
+        group: 'books',
+        animation: 200,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        filter: '.box-item, .picture-item',
+        preventOnFilter: false,
+        onMove: function(evt) {
+          updateInsertionMarker(evt);
+        },
+        onEnd: function(evt) {
+          clearInsertionMarker();
+
+          const movedSrc = evt.item.dataset.src;
+          const book = booksData.find(b => b.src === movedSrc);
+          if (!book) return;
+
+          const rect = evt.item.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const relativeY = rect.top - containerRect.top + window.scrollY;
+          const newShelf = getShelfIndex(relativeY);
+          book.shelf = newShelf;
+
+          const items = container.querySelectorAll('.book-item');
+          items.forEach((item, idx) => {
+            const src = item.dataset.src;
+            const b = booksData.find(b => b.src === src);
+            if (b) b.order = idx;
+          });
+
+          renderBooks();
+          renderBoxes();
+
+          if (!box1Unlocked && checkSequence()) {
+            forceOpenBox1();
+          } else if (!box1Unlocked) {
+            const boxEl = container.querySelector('.box-item[data-box-id="1"]');
+            if (boxEl && !boxEl.classList.contains('locked')) {
+              boxEl.classList.add('locked');
+            }
+          }
+        }
+      });
+
+      // Ensure box 1 lock state
+      const boxEl = container.querySelector('.box-item[data-box-id="1"]');
+      if (boxEl) {
+        if (!box1Unlocked) {
+          boxEl.classList.add('locked');
+        } else {
+          boxEl.classList.remove('locked');
+        }
+      }
+    }
+
+    function renderBoxes() {
+      container.querySelectorAll('.box-item').forEach(el => el.remove());
+      const xOffset = isPC ? PC_X_OFFSET : 0;
+
+      boxesData.forEach(box => {
+        const item = document.createElement('div');
+        item.className = 'box-item';
+        item.dataset.boxId = box.id;
+
+        const startX = box.closedX + xOffset;
+        const startY = box.closedY;
+        const startScale = box.closedScale || 0.3;
+        item.style.left = startX + 'px';
+        item.style.top = startY + 'px';
+        item.style.transform = `scale(${startScale})`;
+        item.style.transformOrigin = 'top left';
+
+        const img = document.createElement('img');
+        img.src = box.closedImg;
+        img.alt = `Box ${box.id}`;
+        img.dataset.closedImg = box.closedImg;
+        img.dataset.openImg = box.openImg;
+        img.dataset.isOpen = 'false';
+
+        img.onerror = function() {
+          this.style.backgroundColor = '#ff0000';
+          this.style.width = '100px';
+          this.style.height = '100px';
+          this.alt = 'Image missing';
+        };
+
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const boxId = parseInt(this.dataset.boxId, 10);
+          if (boxId === 1 && !box1Unlocked) {
+            console.log('🔒 Box 1 is locked!');
+            return;
+          }
+
+          const img = this.querySelector('img');
+          const isOpen = img.dataset.isOpen === 'true';
+          const box = boxesData.find(b => b.id === boxId);
+          if (!box) return;
+
+          const newState = isOpen ? 'closed' : 'open';
+          const newImg = isOpen ? box.closedImg : box.openImg;
+          const newX = (isOpen ? box.closedX : box.openX) + xOffset;
+          const newY = isOpen ? box.closedY : box.openY;
+          const newScale = isOpen ? box.closedScale : box.openScale;
+
+          img.src = newImg;
+          img.dataset.isOpen = isOpen ? 'false' : 'true';
+          this.style.left = newX + 'px';
+          this.style.top = newY + 'px';
+          this.style.transform = `scale(${newScale})`;
+        });
+
+        item.appendChild(img);
+        container.appendChild(item);
+      });
+
+      // apply lock state to box 1
+      const boxEl = container.querySelector('.box-item[data-box-id="1"]');
+      if (boxEl) {
+        if (!box1Unlocked) {
+          boxEl.classList.add('locked');
+        } else {
+          boxEl.classList.remove('locked');
+        }
+      }
+    }
+
+    // ----- Load images -----
+    function loadImages(callback) {
+      const bookPromises = booksData.map(book => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = function() {
+            imageSizes[book.src] = { width: this.naturalWidth, height: this.naturalHeight };
+            resolve();
+          };
+          img.onerror = function() {
+            imageSizes[book.src] = { width: 100, height: 150 };
+            resolve();
+          };
+          img.src = book.src;
+        });
+      });
+      const colourPromises = colourPictures.map(pic => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = pic.src;
+        });
+      });
+      Promise.all([...bookPromises, ...colourPromises]).then(callback);
+    }
+
+    // ---- Side decorations (PC) ----
+    const DECOR_PC = {
+      leftImage: "decor-left.png",
+      rightImage: "decor-right.png",
+      scale: 1.0,
+      leftOffsetX: 0,
+      leftOffsetY: 0,
+      rightOffsetX: 0,
+      rightOffsetY: 0,
+    };
+
+    if (isPC) {
+      const leftContainer = document.getElementById('decor-left');
+      const rightContainer = document.getElementById('decor-right');
+      if (DECOR_PC.leftImage) {
+        const leftImg = document.createElement('img');
+        leftImg.src = DECOR_PC.leftImage;
+        leftImg.alt = 'Left decor';
+        leftImg.style.transform = `scale(${DECOR_PC.scale})`;
+        leftImg.style.marginLeft = DECOR_PC.leftOffsetX + 'px';
+        leftImg.style.marginTop = DECOR_PC.leftOffsetY + 'px';
+        leftContainer.appendChild(leftImg);
+      }
+      if (DECOR_PC.rightImage) {
+        const rightImg = document.createElement('img');
+        rightImg.src = DECOR_PC.rightImage;
+        rightImg.alt = 'Right decor';
+        rightImg.style.transform = `scale(${DECOR_PC.scale})`;
+        rightImg.style.marginRight = DECOR_PC.rightOffsetX + 'px';
+        rightImg.style.marginTop = DECOR_PC.rightOffsetY + 'px';
+        rightContainer.appendChild(rightImg);
+      }
+    }
+
+    // ----- Start -----
+    loadImages(() => {
+      renderPictures();
+      renderBooks();
+      renderBoxes();
+      console.log('🔒 Box 1 is locked. Arrange books on shelf 1 in the correct order (matching colour positions) to unlock.');
+      console.log('Correct sequence (left to right): book5, book11, book9, book4, book1, book2, book6, book8, book7, book3, book10');
+    });
+  </script>
+</body>
+</html>
