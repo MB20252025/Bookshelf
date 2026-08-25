@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bookshelf – debug sequence</title>
+  <title>Bookshelf – custom sequence</title>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js">
   </script>
   <style>
-    /* ... same styles as before ... */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       user-select: none;
     }
-    html, body {
+    html,
+    body {
       width: 100%;
       min-height: 100%;
       background-color: #2c1a12;
@@ -108,7 +108,8 @@
       text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
     }
     @media (min-width: 1024px) {
-      html, body {
+      html,
+      body {
         overflow: hidden;
         height: 100%;
       }
@@ -276,20 +277,19 @@
     ];
 
     // ================================================================
-    //  🔑  CORRECT SEQUENCE
+    //  🔑  NEW CORRECT SEQUENCE (your order)
     // ================================================================
     const CORRECT_SEQUENCE = [
-      'book5.png',
       'book11.png',
       'book9.png',
       'book4.png',
       'book1.png',
       'book2.png',
-      'book6.png',
-      'book10.png',
       'book7.png',
+      'book10.png',
+      'book8.png',
       'book3.png',
-      'book8.png'
+      'book5.png'
     ];
 
     // ================================================================
@@ -303,10 +303,12 @@
     const SHELF_Y_MAP = [28, 212, 370, 550];
 
     function getShelfIndex(y) {
-      let minDist = Infinity, idx = 0;
+      let minDist = Infinity,
+        idx = 0;
       SHELF_Y_MAP.forEach((sy, i) => {
         const d = Math.abs(y - sy);
-        if (d < minDist) { minDist = d; idx = i; }
+        if (d < minDist) { minDist = d;
+          idx = i; }
       });
       return idx;
     }
@@ -322,29 +324,19 @@
 
     let box1Unlocked = false;
 
-    // ----- Puzzle check with DEBUG LOGGING -----
+    // ----- Puzzle check (subsequence match) -----
     function checkSequence() {
       const shelfBooks = booksData
         .filter(b => b.shelf === 0)
         .sort((a, b) => a.order - b.order);
-      
       const order = shelfBooks.map(b => b.src);
-      console.log('📚 Top shelf order:', order);
-      console.log('🔑 Expected sequence:', CORRECT_SEQUENCE);
-      
       let i = 0;
-      let matched = [];
       for (const src of order) {
         if (src === CORRECT_SEQUENCE[i]) {
-          matched.push(src);
           i++;
-          if (i === CORRECT_SEQUENCE.length) {
-            console.log('✅ SEQUENCE MATCHED!', matched);
-            return true;
-          }
+          if (i === CORRECT_SEQUENCE.length) return true;
         }
       }
-      console.log(`❌ Sequence not found. Matched ${i}/${CORRECT_SEQUENCE.length}:`, matched);
       return false;
     }
 
@@ -477,15 +469,12 @@
           renderBooks();
           renderBoxes();
 
-          if (!box1Unlocked) {
-            const solved = checkSequence();
-            if (solved) {
-              forceOpenBox1();
-            } else {
-              const boxEl = container.querySelector('.box-item[data-box-id="1"]');
-              if (boxEl && !boxEl.classList.contains('locked')) {
-                boxEl.classList.add('locked');
-              }
+          if (!box1Unlocked && checkSequence()) {
+            forceOpenBox1();
+          } else if (!box1Unlocked) {
+            const boxEl = container.querySelector('.box-item[data-box-id="1"]');
+            if (boxEl && !boxEl.classList.contains('locked')) {
+              boxEl.classList.add('locked');
             }
           }
         }
@@ -629,7 +618,7 @@
       renderBooks();
       renderBoxes();
       console.log('🔒 Box 1 is locked. Arrange books on shelf 1 in the correct order:');
-      console.log('Sequence: book5, book11, book9, book4, book1, book2, book6, book10, book7, book3, book8');
+      console.log('Sequence: book11, book9, book4, book1, book2, book7, book10, book8, book3, book5');
     });
   </script>
 </body>
