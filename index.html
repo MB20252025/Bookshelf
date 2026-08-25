@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bookshelf – custom sequence</title>
+  <title>Bookshelf – debug sequence</title>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js">
   </script>
   <style>
+    /* ... same styles as before ... */
     * {
       margin: 0;
       padding: 0;
@@ -275,7 +276,7 @@
     ];
 
     // ================================================================
-    //  🔑  NEW CORRECT SEQUENCE (your custom order)
+    //  🔑  CORRECT SEQUENCE
     // ================================================================
     const CORRECT_SEQUENCE = [
       'book5.png',
@@ -321,19 +322,29 @@
 
     let box1Unlocked = false;
 
-    // ----- Puzzle check (subsequence match) -----
+    // ----- Puzzle check with DEBUG LOGGING -----
     function checkSequence() {
       const shelfBooks = booksData
         .filter(b => b.shelf === 0)
         .sort((a, b) => a.order - b.order);
+      
       const order = shelfBooks.map(b => b.src);
+      console.log('📚 Top shelf order:', order);
+      console.log('🔑 Expected sequence:', CORRECT_SEQUENCE);
+      
       let i = 0;
+      let matched = [];
       for (const src of order) {
         if (src === CORRECT_SEQUENCE[i]) {
+          matched.push(src);
           i++;
-          if (i === CORRECT_SEQUENCE.length) return true;
+          if (i === CORRECT_SEQUENCE.length) {
+            console.log('✅ SEQUENCE MATCHED!', matched);
+            return true;
+          }
         }
       }
+      console.log(`❌ Sequence not found. Matched ${i}/${CORRECT_SEQUENCE.length}:`, matched);
       return false;
     }
 
@@ -466,12 +477,15 @@
           renderBooks();
           renderBoxes();
 
-          if (!box1Unlocked && checkSequence()) {
-            forceOpenBox1();
-          } else if (!box1Unlocked) {
-            const boxEl = container.querySelector('.box-item[data-box-id="1"]');
-            if (boxEl && !boxEl.classList.contains('locked')) {
-              boxEl.classList.add('locked');
+          if (!box1Unlocked) {
+            const solved = checkSequence();
+            if (solved) {
+              forceOpenBox1();
+            } else {
+              const boxEl = container.querySelector('.box-item[data-box-id="1"]');
+              if (boxEl && !boxEl.classList.contains('locked')) {
+                boxEl.classList.add('locked');
+              }
             }
           }
         }
